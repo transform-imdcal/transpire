@@ -4,7 +4,9 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-ConfigurationKind = Literal["site", "department", "category", "subcategory", "process_area"]
+ConfigurationKind = Literal[
+    "site", "department", "category", "subcategory", "process_area", "capex_subtype"
+]
 
 
 class ConfigurationItemCreate(BaseModel):

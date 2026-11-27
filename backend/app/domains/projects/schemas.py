@@ -304,3 +304,29 @@ class ProjectWorkspaceRecord(BaseModel):
     can_manage_plan: bool
     owner_candidates: list[ProjectTeamCandidate]
     updated_at: datetime
+
+
+class CharterListEntry(BaseModel):
+    """One row of the Charters register. Opens /projects/{project_id}/charter."""
+
+    project_id: uuid.UUID
+    project_reference: str
+    idea_reference: str
+    title: str
+    idea_type: str
+    project_subtype: str | None
+    # drafting: the owner is still completing it; baselined: submitted, baseline v1 published.
+    charter_status: Literal["drafting", "baselined"]
+    project_status: str
+    leader_name: str | None
+    sponsor_name: str | None
+    owner_name: str
+    site: str | None
+    department: str | None
+    target_completion_date: date | None
+    team_size: int
+    submitted_at: datetime | None
+    updated_at: datetime
+    # How the viewer is involved, most responsible first; None when they're not.
+    my_role: Literal["owner", "lead", "sponsor", "team"] | None
+    can_edit: bool

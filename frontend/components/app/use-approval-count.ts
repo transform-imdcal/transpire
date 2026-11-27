@@ -7,9 +7,10 @@ type Summary = {
   ideas: Array<{ status: string }>;
   approval_items: Array<{ stage_id: string }>;
   join_requests?: Array<{ id: string }>;
+  endorsement_requests?: Array<{ id: string }>;
 };
 
-/** Inbox count: approvals, own ideas needing correction, and requests to join own ideas. Refreshed every minute. */
+/** Inbox count: approvals, own ideas needing correction, requests to join own ideas, and endorsements asked of you. Refreshed every minute. */
 export function useApprovalCount() {
   const [count, setCount] = useState(0);
 
@@ -22,7 +23,8 @@ export function useApprovalCount() {
           setCount(
             summary.approval_items.length
               + summary.ideas.filter((idea) => idea.status === "needs_correction").length
-              + (summary.join_requests?.length ?? 0),
+              + (summary.join_requests?.length ?? 0)
+              + (summary.endorsement_requests?.length ?? 0),
           );
         })
         .catch(() => undefined);

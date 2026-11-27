@@ -48,6 +48,7 @@ SUPPORTED_TEMPLATES = frozenset(
         "check_in_reminder",
         "comment_posted",
         "comment_request",
+        "endorsement_request",
         "idea_needs_correction",
         "idea_rejected",
         "privileged_role_granted",

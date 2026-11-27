@@ -381,3 +381,7 @@
     animation: none;
   }
 }
+
+/* Totals of whatever is shown, in the results header instead of a separate block. */
+.totals { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: .35rem 1rem; color: var(--muted); font-size: var(--tp-text-xs); font-weight: 650; }
+.totals b { color: var(--ink); font-weight: 800; }

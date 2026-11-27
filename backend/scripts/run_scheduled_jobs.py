@@ -4,7 +4,7 @@
 
 For each workspace it: fetches the HR report from its SFTP server (at most once per
 --fetch-every-hours), applies any file dropped into its local inbox folder, and sends
-overdue approval reminders. Every step is idempotent, so overlapping or repeated runs
+overdue approval reminders, and clears uploads that were never finished. Every step is idempotent, so overlapping or repeated runs
 are harmless; a failure in one workspace never stops the others.
 """
 
@@ -20,6 +20,7 @@ from app.core.tenant_context import apply_tenant_to_transaction
 from app.domains.directory.models import DirectorySftpSource
 from app.domains.directory.sftp_controllers import fetch_and_apply
 from app.domains.directory.sync import process_inbox
+from app.domains.files.controllers import purge_abandoned_uploads
 from app.domains.ideas.approval_reminders import send_overdue_reminders
 
 
@@ -70,6 +71,10 @@ async def run(only: str | None, fetch_every: timedelta, skip_sftp: bool) -> int:
                 sent = await send_overdue_reminders(tenant_id, settings, session)
             if sent.reminded or sent.escalated:
                 print(f"{slug}: {sent.reminded} reminder(s), {sent.escalated} escalation(s)")
+            async with session_factory() as session:
+                purged = await purge_abandoned_uploads(tenant_id, settings, session)
+            if purged:
+                print(f"{slug}: removed {purged} abandoned upload(s)")
         except Exception as error:  # noqa: BLE001 - one workspace must never block the rest
             failures += 1
             print(f"{slug}: FAILED {type(error).__name__}: {error}")

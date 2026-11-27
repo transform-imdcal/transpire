@@ -315,9 +315,7 @@ async def redeem_sso_recovery(
     session: SessionDependency,
 ) -> Response:
     try:
-        issued = await redeem_recovery(
-            command.token, tenant, _client(request), settings, session
-        )
+        issued = await redeem_recovery(command.token, tenant, _client(request), settings, session)
     except SSOAuthenticationError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
     response = Response(status_code=status.HTTP_204_NO_CONTENT)

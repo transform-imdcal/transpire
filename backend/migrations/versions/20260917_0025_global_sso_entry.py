@@ -19,13 +19,25 @@ depends_on: str | Sequence[str] | None = None
 
 def _timestamps() -> list[sa.Column]:
     return [
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     ]
 
 
 def upgrade() -> None:
-    op.create_index("ix_tenant_sso_configurations_tenant_id", "tenant_sso_configurations", ["tenant_id"])
+    op.create_index(
+        "ix_tenant_sso_configurations_tenant_id", "tenant_sso_configurations", ["tenant_id"]
+    )
     op.create_index("ix_external_identities_tenant_id", "external_identities", ["tenant_id"])
     op.create_index("ix_oidc_login_states_tenant_id", "oidc_login_states", ["tenant_id"])
     op.create_index("ix_sso_recovery_tokens_tenant_id", "sso_recovery_tokens", ["tenant_id"])
@@ -49,7 +61,9 @@ def upgrade() -> None:
         sa.UniqueConstraint("state_hash"),
     )
     op.create_index("ix_global_oidc_login_states_hash", "global_oidc_login_states", ["state_hash"])
-    op.create_index("ix_global_oidc_login_states_expires", "global_oidc_login_states", ["expires_at"])
+    op.create_index(
+        "ix_global_oidc_login_states_expires", "global_oidc_login_states", ["expires_at"]
+    )
     op.create_table(
         "sso_workspace_selection_tokens",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -67,7 +81,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("token_hash"),
     )
-    op.create_index("ix_sso_workspace_selection_tokens_hash", "sso_workspace_selection_tokens", ["token_hash"])
+    op.create_index(
+        "ix_sso_workspace_selection_tokens_hash", "sso_workspace_selection_tokens", ["token_hash"]
+    )
     op.execute(
         """
         CREATE FUNCTION resolve_active_sso_workspaces(

@@ -1,0 +1,14 @@
+Will you back this idea?
+
+Hi {{ recipient_name.split(' ')[0] }}, {{ owner_name }} has asked you to endorse their idea. An endorsement tells reviewers you support it. It doesn't approve or block anything.
+
+{{ action_label }}: {{ action_url }}
+
+Reference: {{ idea_reference }}
+Idea: {{ idea_title }}
+Problem: {{ problem_statement }}
+Their note to you: {{ owner_message }}
+
+You can endorse it, with an optional comment, or decline. Either answer is fine.
+
+{% include "_footer.txt" %}

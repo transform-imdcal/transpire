@@ -30,9 +30,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "uq_idea_approval_stage_round_order", "idea_approval_stages", type_="unique"
-    )
+    op.drop_constraint("uq_idea_approval_stage_round_order", "idea_approval_stages", type_="unique")
     op.create_unique_constraint(
         "uq_idea_approval_stage_order", "idea_approval_stages", ["idea_id", "stage_order"]
     )

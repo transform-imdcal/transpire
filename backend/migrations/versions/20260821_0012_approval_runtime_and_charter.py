@@ -19,8 +19,18 @@ depends_on: str | Sequence[str] | None = None
 
 def _timestamps() -> tuple[sa.Column, sa.Column]:
     return (
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     )
 
 
@@ -62,7 +72,9 @@ def upgrade() -> None:
         *_timestamps(),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["idea_id"], ["ideas.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["assignee_membership_id"], ["memberships.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(
+            ["assignee_membership_id"], ["memberships.id"], ondelete="RESTRICT"
+        ),
         sa.ForeignKeyConstraint(["assignee_user_id"], ["users.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("idea_id", "stage_order", name="uq_idea_approval_stage_order"),
@@ -90,14 +102,18 @@ def upgrade() -> None:
         sa.Column("site_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("start_date", sa.Date(), nullable=True),
         sa.Column("target_completion_date", sa.Date(), nullable=True),
-        sa.Column("team_members", postgresql.ARRAY(sa.String(200)), nullable=False, server_default="{}"),
+        sa.Column(
+            "team_members", postgresql.ARRAY(sa.String(200)), nullable=False, server_default="{}"
+        ),
         sa.Column("in_scope", sa.Text(), nullable=False, server_default=""),
         sa.Column("out_of_scope", sa.Text(), nullable=False, server_default=""),
         sa.Column("objective", sa.Text(), nullable=False, server_default=""),
         sa.Column("benefit_type", sa.String(40), nullable=False, server_default="cost_saving"),
         sa.Column("kpi_name", sa.String(160), nullable=False, server_default=""),
         sa.Column("budget_approved", sa.Numeric(16, 2), nullable=True),
-        sa.Column("impact_areas", postgresql.ARRAY(sa.String(24)), nullable=False, server_default="{}"),
+        sa.Column(
+            "impact_areas", postgresql.ARRAY(sa.String(24)), nullable=False, server_default="{}"
+        ),
         sa.Column("belt_level", sa.String(40), nullable=True),
         sa.Column("submitted_at", sa.DateTime(timezone=True), nullable=True),
         *_timestamps(),
@@ -109,9 +125,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("idea_id", name="uq_project_charters_idea"),
     )
     op.create_index("ix_project_charters_tenant_id", "project_charters", ["tenant_id"])
-    op.create_index(
-        "ix_project_charters_tenant_idea", "project_charters", ["tenant_id", "idea_id"]
-    )
+    op.create_index("ix_project_charters_tenant_idea", "project_charters", ["tenant_id", "idea_id"])
 
     _rls("idea_approval_stages")
     _rls("project_charters")

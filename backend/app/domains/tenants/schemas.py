@@ -88,6 +88,16 @@ class TenantMemberSummary(BaseModel):
     roles: list[str]
     can_manage: bool = False
     last_signed_in_at: datetime | None = None
+    provisioned_by: str = "manual"
+    # HR directory details when the account is linked to an employee in the HR file.
+    employee_id: str | None = None
+    department: str | None = None
+    sub_department: str | None = None
+    location: str | None = None
+    manager_name: str | None = None
+    hod_name: str | None = None
+    hr_status: str | None = None
+    is_approver: bool = False
 
 
 class CheckInReminderCandidate(BaseModel):

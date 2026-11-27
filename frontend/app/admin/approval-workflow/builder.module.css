@@ -154,3 +154,14 @@
 .linkButton { cursor: pointer; border: 0; padding: .3rem .4rem; background: transparent; color: var(--blue-deep); font: inherit; font-size: var(--tp-text-sm); font-weight: 700; }
 .linkButton:disabled { cursor: default; color: var(--muted); }
 @media (max-width: 640px) { .versions li { grid-template-columns: 1fr; } }
+
+/* Zoom ---------------------------------------------------------------------------------- */
+.zoomFrame { position: relative; overflow: auto; padding-top: .75rem; }
+.zoomBar { position: sticky; z-index: 2; top: 0; left: 0; display: flex; justify-content: flex-end; margin-bottom: .75rem; pointer-events: none; }
+.zoomContent { min-width: fit-content; }
+.zoomControls { display: flex; align-items: center; gap: .15rem; border: 1px solid var(--line); border-radius: .4rem; padding: .15rem; background: var(--tp-surface); box-shadow: 0 1px 3px var(--shadow-color); pointer-events: auto; }
+.zoomControls button { display: inline-grid; min-width: 2rem; height: 2rem; cursor: pointer; border: 0; border-radius: .3rem; padding: 0 .35rem; background: transparent; color: var(--ink); font: inherit; font-size: var(--tp-text-xs); font-weight: 780; place-items: center; }
+.zoomControls button:hover:not(:disabled) { background: var(--hover); color: var(--blue-deep); }
+.zoomControls button:disabled { cursor: not-allowed; opacity: .4; }
+.zoomControls button:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.zoomValue { min-width: 3.25rem !important; }

@@ -2,9 +2,11 @@ const TENANT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TENANT_ROUTE_ROOTS = [
   "/admin",
   "/audit",
+  "/charters",
   "/forgot-password",
   "/home",
   "/ideas",
+  "/leaderboard",
   "/notifications",
   "/profile",
   "/projects",

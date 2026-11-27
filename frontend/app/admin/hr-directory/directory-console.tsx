@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CircleSlash, Copy, FileUp, Search, Settings2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleSlash, Copy, FileUp, Hourglass, Search, Settings2, Upload } from "lucide-react";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { SidePanel } from "@/components/admin/side-panel";
@@ -15,11 +15,11 @@ import { isWorkspaceOwner } from "@/lib/roles";
 import styles from "./directory.module.css";
 import { SftpCard } from "./sftp-card";
 
-type DirectorySettings = { invite_new_employees: boolean; allowed_email_domains: string[]; max_drop_percent: number };
-type Overview = { settings: DirectorySettings; inbox_folder: string; inbox_waiting: string[]; employees_active: number; employees_missing: number; employees_left: number; employees_with_account: number; last_applied_at: string | null };
+type DirectorySettings = { allowed_email_domains: string[]; max_drop_percent: number };
+type Overview = { settings: DirectorySettings; inbox_folder: string; inbox_waiting: string[]; employees_active: number; employees_missing: number; employees_left: number; employees_with_account: number; employees_awaiting: number; last_applied_at: string | null };
 type Person = { employee_id: string; name: string; reason?: string; fields?: string[] };
-type Run = { id: string; file_name: string; source: string; status: "previewed" | "applied" | "rejected" | "duplicate" | "failed"; created_at: string; summary: Record<string, number | null>; report: { message?: string; issues?: { line: number; employee_id: string | null; severity: string; message: string }[]; new?: Person[]; changed?: Person[]; missing?: Person[]; leaving?: Person[]; invited?: Person[]; deactivated?: Person[]; review?: Person[]; email_changes?: { name: string; from: string; to: string }[]; reroutes?: string[] } };
-type Employee = { employee_id: string; display_name: string; email: string | null; location: string; department: string; sub_department: string; manager_name: string | null; hod_name: string | null; status: string; has_account: boolean };
+type Run = { id: string; file_name: string; source: string; status: "previewed" | "applied" | "rejected" | "duplicate" | "failed"; created_at: string; summary: Record<string, number | null>; report: { message?: string; issues?: { line: number; employee_id: string | null; severity: string; message: string }[]; new?: Person[]; changed?: Person[]; missing?: Person[]; leaving?: Person[]; awaiting?: Person[]; invited?: Person[]; deactivated?: Person[]; review?: Person[]; email_changes?: { name: string; from: string; to: string }[]; reroutes?: string[] } };
+type Employee = { employee_id: string; display_name: string; email: string | null; location: string; department: string; sub_department: string; manager_name: string | null; hod_name: string | null; status: string; has_account: boolean; access_review: "pending" | "approved" | "excluded" };
 
 const dateTime = new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -84,7 +84,7 @@ export function DirectoryConsole() {
       const run = await response.json() as Run;
       if (mode === "preview" || run.status !== "applied") setPreview(run);
       if (run.status === "applied") {
-        setMessage(`${file.name} applied: ${run.summary.new ?? 0} new, ${run.summary.changed ?? 0} changed, ${run.summary.invited ?? 0} invited, ${run.summary.deactivated ?? 0} deactivated.`);
+        setMessage(`${file.name} applied: ${run.summary.new ?? 0} new, ${run.summary.changed ?? 0} changed, ${run.summary.deactivated ?? 0} deactivated.${run.summary.awaiting_verification ? ` ${run.summary.awaiting_verification} awaiting verification in People; nobody was invited.` : ""}`);
         setPreview(null); setFile(null);
       } else if (run.status === "duplicate") {
         setMessage("This exact file was already applied. Nothing changed.");
@@ -116,7 +116,7 @@ export function DirectoryConsole() {
     try {
       const response = await apiRequest("/admin/directory/settings", {
         method: "PUT",
-        body: JSON.stringify({ invite_new_employees: settingsDraft.invite_new_employees, max_drop_percent: settingsDraft.max_drop_percent, allowed_email_domains: settingsDraft.domainsText.split(/[\s,]+/).filter(Boolean) }),
+        body: JSON.stringify({ max_drop_percent: settingsDraft.max_drop_percent, allowed_email_domains: settingsDraft.domainsText.split(/[\s,]+/).filter(Boolean) }),
       });
       if (!response.ok) { setError("Settings could not be saved."); return; }
       setSettingsDraft(null); setMessage("HR directory settings saved. They apply from the next file.");
@@ -142,6 +142,7 @@ export function DirectoryConsole() {
 
       {overview ? <dl className={styles.stats}>
         <div><dt>Active employees</dt><dd>{overview.employees_active}</dd></div>
+        <div><dt>Awaiting verification</dt><dd>{overview.employees_awaiting}{overview.employees_awaiting ? <button type="button" className={styles.inlineLink} onClick={() => router.push("/admin/people?status=awaiting")}>Review in People</button> : null}</dd></div>
         <div><dt>With a TRANSPIRE account</dt><dd>{overview.employees_with_account}</dd></div>
         <div><dt>Missing from last file</dt><dd>{overview.employees_missing}</dd></div>
         <div><dt>Left</dt><dd>{overview.employees_left}</dd></div>
@@ -201,7 +202,7 @@ export function DirectoryConsole() {
             <td>{employee.department || "—"}<small className={styles.sub}>{[employee.location, employee.sub_department].filter(Boolean).join(" · ")}</small></td>
             <td>{employee.manager_name ?? "—"}</td>
             <td>{employee.hod_name ?? "—"}</td>
-            <td><div className={styles.statusCell}>{employee.status === "active" ? <StatusPill tone="success">Active</StatusPill> : employee.status === "missing" ? <StatusPill tone="warning">Missing once</StatusPill> : <StatusPill icon={<CircleSlash size={14} aria-hidden="true" />}>Left</StatusPill>}{employee.has_account ? <StatusPill tone="info">Has account</StatusPill> : null}</div></td>
+            <td><div className={styles.statusCell}>{employee.status === "active" ? <StatusPill tone="success">Active</StatusPill> : employee.status === "missing" ? <StatusPill tone="warning">Missing once</StatusPill> : <StatusPill icon={<CircleSlash size={14} aria-hidden="true" />}>Left</StatusPill>}{employee.has_account ? <StatusPill tone="info">Has account</StatusPill> : employee.status === "left" ? null : employee.access_review === "excluded" ? <StatusPill>Not invited</StatusPill> : <StatusPill tone="warning" icon={<Hourglass size={14} aria-hidden="true" />}>Awaiting verification</StatusPill>}</div></td>
           </tr>)}</tbody>
         </table></div> : <p className={styles.empty}>{query ? "No employees match this search." : "The directory is empty until the first HR file is applied."}</p>}
       </section>
@@ -212,7 +213,7 @@ export function DirectoryConsole() {
 
       <SidePanel open={Boolean(settingsDraft)} onClose={() => setSettingsDraft(null)} title="HR directory settings" description="These apply to every HR file from now on.">
         {settingsDraft ? <form className={shared.form} onSubmit={(event) => void saveSettings(event)}>
-          <label className={styles.toggle}><input type="checkbox" checked={settingsDraft.invite_new_employees} onChange={(event) => setSettingsDraft({ ...settingsDraft, invite_new_employees: event.target.checked })} /><span><strong>Invite every employee in the file</strong><small>Off: only reporting managers and heads of department are invited, because approvals depend on them. Turn on when you are ready for a full rollout.</small></span></label>
+          <p className={styles.sub}>Nobody is invited automatically. New employees from each file wait under People → Awaiting verification until an administrator verifies them.</p>
           <div className={shared.field}><label htmlFor="domains">Company email domains</label><input id="domains" value={settingsDraft.domainsText} onChange={(event) => setSettingsDraft({ ...settingsDraft, domainsText: event.target.value })} placeholder="dishmangroup.com, imdcal.com" /><small className={styles.sub}>Only these domains get accounts. Leave empty to allow any domain.</small></div>
           <div className={shared.field}><label htmlFor="drop">Block a file if more than this % of employees disappear</label><input id="drop" type="number" min={1} max={100} value={settingsDraft.max_drop_percent} onChange={(event) => setSettingsDraft({ ...settingsDraft, max_drop_percent: Number(event.target.value) })} /><small className={styles.sub}>Protects against a truncated export deactivating people. Blocked files can still be applied by hand.</small></div>
           <button type="submit" className={shared.primary} disabled={busy !== ""}>Save settings</button>
@@ -232,13 +233,14 @@ function PeopleList({ title, people, detail }: { title: string; people?: Person[
 
 function RunReport({ run }: { run: Run }) {
   const report = run.report;
-  const nothing = !report.new?.length && !report.changed?.length && !report.missing?.length && !report.leaving?.length && !report.issues?.length && !report.invited?.length && !report.reroutes?.length && !report.review?.length;
+  const nothing = !report.new?.length && !report.changed?.length && !report.missing?.length && !report.leaving?.length && !report.issues?.length && !report.invited?.length && !report.awaiting?.length && !report.reroutes?.length && !report.review?.length;
   return <div className={styles.report}>
     {run.summary.rows !== undefined ? <p className={styles.counts}>{run.summary.rows} rows · {run.summary.unchanged ?? 0} unchanged · {run.summary.new ?? 0} new · {run.summary.changed ?? 0} changed · {run.summary.returning ?? 0} returning · {run.summary.missing ?? 0} missing · {run.summary.leaving ?? 0} leaving</p> : null}
     <PeopleList title="New employees" people={report.new} />
     <PeopleList title="Changed" people={report.changed} detail={(person) => person.fields?.join(", ")} />
     <PeopleList title="Missing for the first time (no action yet)" people={report.missing} />
     <PeopleList title="Left: access removed" people={report.leaving} />
+    <PeopleList title="Awaiting verification (not invited)" people={report.awaiting} detail={(person) => person.reason === "approver" ? "approver" : undefined} />
     <PeopleList title="Invited" people={report.invited} detail={(person) => person.reason === "approver" ? "approver" : undefined} />
     <PeopleList title="Deactivated" people={report.deactivated} />
     <PeopleList title="Needs your review" people={report.review} detail={(person) => person.reason} />

@@ -43,9 +43,10 @@ def upgrade() -> None:
             {"tenant_id": tenant_id},
         ).mappings()
         for idea in submitted:
-            fallback = connection.execute(
-            sa.text(
-                """
+            fallback = (
+                connection.execute(
+                    sa.text(
+                        """
                 SELECT memberships.id AS membership_id, users.id AS user_id,
                        users.display_name, users.email
                 FROM memberships
@@ -58,18 +59,22 @@ def upgrade() -> None:
                 ORDER BY users.display_name
                 LIMIT 1
                 """
-            ),
-            {"tenant_id": idea["tenant_id"]},
-            ).mappings().first()
+                    ),
+                    {"tenant_id": idea["tenant_id"]},
+                )
+                .mappings()
+                .first()
+            )
             if fallback is None:
                 continue
             for index, stage in enumerate(idea["stages"] or []):
                 assignee = None
                 assignee_id = stage.get("assignee_membership_id")
                 if assignee_id:
-                    assignee = connection.execute(
-                    sa.text(
-                        """
+                    assignee = (
+                        connection.execute(
+                            sa.text(
+                                """
                         SELECT memberships.id AS membership_id, users.id AS user_id,
                                users.display_name, users.email
                         FROM memberships
@@ -79,17 +84,20 @@ def upgrade() -> None:
                           AND memberships.status IN ('active', 'invited')
                         LIMIT 1
                         """
-                    ),
-                    {
-                        "tenant_id": idea["tenant_id"],
-                        "membership_id": uuid.UUID(str(assignee_id)),
-                    },
-                    ).mappings().first()
+                            ),
+                            {
+                                "tenant_id": idea["tenant_id"],
+                                "membership_id": uuid.UUID(str(assignee_id)),
+                            },
+                        )
+                        .mappings()
+                        .first()
+                    )
                 resolved = assignee or fallback
                 sla_hours = int(stage.get("sla_hours", 48))
                 connection.execute(
-                sa.text(
-                    """
+                    sa.text(
+                        """
                     INSERT INTO idea_approval_stages (
                         id, tenant_id, idea_id, stage_order, stage_key, stage_name,
                         assignee_membership_id, assignee_user_id, assignee_name,
@@ -100,22 +108,22 @@ def upgrade() -> None:
                         :status, :due_at
                     )
                     """
-                ),
-                {
-                    "id": uuid.uuid4(),
-                    "tenant_id": idea["tenant_id"],
-                    "idea_id": idea["id"],
-                    "stage_order": index + 1,
-                    "stage_key": str(stage.get("key", f"stage_{index + 1}")),
-                    "stage_name": str(stage.get("name", f"Approval stage {index + 1}")),
-                    "membership_id": resolved["membership_id"],
-                    "user_id": resolved["user_id"],
-                    "display_name": resolved["display_name"],
-                    "email": resolved["email"],
-                    "sla_hours": sla_hours,
-                    "status": "pending" if index == 0 else "waiting",
-                    "due_at": now + timedelta(hours=sla_hours) if index == 0 else None,
-                },
+                    ),
+                    {
+                        "id": uuid.uuid4(),
+                        "tenant_id": idea["tenant_id"],
+                        "idea_id": idea["id"],
+                        "stage_order": index + 1,
+                        "stage_key": str(stage.get("key", f"stage_{index + 1}")),
+                        "stage_name": str(stage.get("name", f"Approval stage {index + 1}")),
+                        "membership_id": resolved["membership_id"],
+                        "user_id": resolved["user_id"],
+                        "display_name": resolved["display_name"],
+                        "email": resolved["email"],
+                        "sla_hours": sla_hours,
+                        "status": "pending" if index == 0 else "waiting",
+                        "due_at": now + timedelta(hours=sla_hours) if index == 0 else None,
+                    },
                 )
 
 

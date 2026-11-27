@@ -17,6 +17,17 @@ from app.domains.communications.services import (
 )
 
 TEMPLATE_CASES = {
+    "endorsement_request": {
+        "recipient_name": "Avery <script>",
+        "tenant_name": "Example Industries",
+        "owner_name": "Jordan Lee",
+        "idea_reference": "IDEA-2026-0001",
+        "idea_title": "Cut changeover time",
+        "problem_statement": "Changeovers take 90 minutes.",
+        "owner_message": "Your line sees this every week.",
+        "action_url": "https://example.transpire.test/ideas/1/summary",
+        "action_label": "Read and respond",
+    },
     "invitation": {
         "recipient_name": "Avery <script>",
         "tenant_name": "Example Industries",
@@ -172,8 +183,13 @@ async def test_smtp_transport_uses_certifi_ca_bundle(
 
     monkeypatch.setattr("app.domains.communications.services.aiosmtplib.send", fake_send)
     settings = Settings(
-        EMAIL_BACKEND="smtp", SMTP_HOST="smtp.example.com", SMTP_PORT=port,
-        SMTP_USERNAME="", SMTP_PASSWORD="", SMTP_START_TLS=True, SMTP_USE_TLS=False,
+        EMAIL_BACKEND="smtp",
+        SMTP_HOST="smtp.example.com",
+        SMTP_PORT=port,
+        SMTP_USERNAME="",
+        SMTP_PASSWORD="",
+        SMTP_START_TLS=True,
+        SMTP_USE_TLS=False,
     )
     rendered = EmailTemplateRenderer().render(
         EmailMessage(
@@ -277,7 +293,9 @@ def test_check_in_reminder_puts_actions_first_and_greets_by_first_name() -> None
     assert "Manage preferences" in rendered.html_body
     assert "/t/example/profile" in rendered.html_body
     # Both buttons come before the "What you can do today" cards.
-    assert rendered.html_body.index("Sign in to TRANSPIRE") < rendered.html_body.index("Share an idea")
+    assert rendered.html_body.index("Sign in to TRANSPIRE") < rendered.html_body.index(
+        "Share an idea"
+    )
     assert "Time to check in, Avery." in rendered.text_body
 
     hostile = renderer.render(

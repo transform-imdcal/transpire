@@ -1,7 +1,7 @@
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 
 from app.domains.ideas.comments import (
     CommentCommand,
@@ -35,7 +35,21 @@ from app.domains.ideas.controllers import (
     update_idea_bank_policy,
     withdraw_join_request,
 )
+from app.domains.ideas.endorsements import (
+    EndorsementAccessError,
+    EndorsementNotFoundError,
+    EndorsementPanel,
+    EndorsementRequestCommand,
+    EndorsementResponseCommand,
+    EndorsementRuleError,
+    get_endorsements,
+    request_endorsements,
+    respond_to_endorsement,
+    withdraw_endorsement_request,
+)
 from app.domains.ideas.fx import ExchangeRateUnavailableError, get_inr_usd_rate
+from app.domains.ideas.leaderboard import IdeaType as LeaderboardIdeaType
+from app.domains.ideas.leaderboard import Leaderboard, Quarter, get_leaderboard
 from app.domains.ideas.schemas import (
     ApprovalDecisionCommand,
     EditableIdeaRecord,
@@ -98,6 +112,26 @@ async def read_exchange_rate(
             status_code=503,
             detail="USD conversion is temporarily unavailable. INR values can still be saved.",
         ) from error
+
+
+@router.get("/leaderboard", response_model=Leaderboard)
+async def read_leaderboard(
+    identity: AuthenticatedIdentity,
+    tenant: TenantDependency,
+    session: SessionDependency,
+    financial_year: int | None = Query(default=None, ge=2000, le=2100),
+    quarter: Quarter = "all",
+    idea_type: LeaderboardIdeaType = "all",
+) -> Leaderboard:
+    return await get_leaderboard(
+        tenant.tenant_id,
+        identity.user.id,
+        identity.roles,
+        session,
+        financial_year=financial_year,
+        quarter=quarter,
+        idea_type=idea_type,
+    )
 
 
 @router.get("/{idea_id}/edit", response_model=EditableIdeaRecord)
@@ -194,6 +228,90 @@ async def answer_join_request(
             status_code=403, detail="Only the idea's owner can answer requests to join."
         ) from error
     except JoinRequestError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.get("/{idea_id}/endorsements", response_model=EndorsementPanel)
+async def read_endorsements(
+    idea_id: uuid.UUID,
+    identity: AuthenticatedIdentity,
+    tenant: TenantDependency,
+    session: SessionDependency,
+) -> EndorsementPanel:
+    try:
+        return await get_endorsements(
+            tenant.tenant_id, identity.user.id, identity.roles, idea_id, session
+        )
+    except EndorsementNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Idea not found.") from error
+    except EndorsementAccessError as error:
+        raise HTTPException(status_code=403, detail="You can't see this idea.") from error
+
+
+@router.post("/{idea_id}/endorsements", status_code=status.HTTP_201_CREATED)
+async def ask_for_endorsements(
+    idea_id: uuid.UUID,
+    command: EndorsementRequestCommand,
+    identity: ContributorIdentity,
+    tenant: TenantDependency,
+    settings: SettingsDependency,
+    session: SessionDependency,
+) -> dict[str, int]:
+    try:
+        asked = await request_endorsements(
+            tenant.tenant_id, identity.user.id, idea_id, command, settings, session
+        )
+    except EndorsementNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Idea not found.") from error
+    except EndorsementAccessError as error:
+        raise HTTPException(
+            status_code=403, detail="Only the idea's owner can ask for endorsements."
+        ) from error
+    except EndorsementRuleError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+    return {"asked": asked}
+
+
+@router.post("/{idea_id}/endorsements/{endorsement_id}/respond", status_code=204)
+async def answer_endorsement(
+    idea_id: uuid.UUID,
+    endorsement_id: uuid.UUID,
+    command: EndorsementResponseCommand,
+    identity: ContributorIdentity,
+    tenant: TenantDependency,
+    session: SessionDependency,
+) -> None:
+    try:
+        await respond_to_endorsement(
+            tenant.tenant_id, identity.user.id, idea_id, endorsement_id, command, session
+        )
+    except EndorsementNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Request not found.") from error
+    except EndorsementAccessError as error:
+        raise HTTPException(
+            status_code=403, detail="This request isn't addressed to you."
+        ) from error
+    except EndorsementRuleError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@router.delete("/{idea_id}/endorsements/{endorsement_id}", status_code=204)
+async def withdraw_endorsement(
+    idea_id: uuid.UUID,
+    endorsement_id: uuid.UUID,
+    identity: ContributorIdentity,
+    tenant: TenantDependency,
+    session: SessionDependency,
+) -> None:
+    try:
+        await withdraw_endorsement_request(
+            tenant.tenant_id, identity.user.id, idea_id, endorsement_id, session
+        )
+    except EndorsementNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Request not found.") from error
+    except EndorsementAccessError as error:
+        raise HTTPException(status_code=403, detail="Only the idea's owner can do that.") from error
+    except EndorsementRuleError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
 
 

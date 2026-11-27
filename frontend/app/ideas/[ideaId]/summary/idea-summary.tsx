@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Check, EyeOff, Hand, IndianRupee, LockKeyhole, S
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { TenantLink as Link } from "@/components/app/tenant-link";
+import { IdeaEndorsements } from "@/components/ideas/idea-endorsements";
 import { IdeaJourney } from "@/components/ui/idea-journey";
 import { IdeaStatusPill } from "@/components/ui/idea-status";
 import { initials } from "@/components/ui/people";
@@ -113,6 +114,8 @@ export function IdeaSummary({ ideaId }: { ideaId: string }) {
       {idea.join_requests.length ? <JoinRequests ideaId={idea.id} requests={idea.join_requests} onChanged={load} /> : null}
     </section>
 
+    <IdeaEndorsements ideaId={idea.id} viewerId={session.user.id} />
+
     <section className={styles.facts} aria-labelledby="summary-details">
       <h2 id="summary-details">Details</h2>
       <dl>
@@ -120,7 +123,6 @@ export function IdeaSummary({ ideaId }: { ideaId: string }) {
         <Fact label="Impact">{idea.shows_operational ? (idea.impacts?.length ? idea.impacts.map((impact) => impactLabels[impact] ?? impact).join(", ") : "Not provided") : null}</Fact>
         <Fact label="Category">{idea.category ?? "Unclassified"}</Fact>
         <Fact label="Subcategory">{idea.shows_operational ? idea.subcategory ?? "Not provided" : null}</Fact>
-        <Fact label="Process area">{idea.shows_operational ? idea.process_area ?? "Not provided" : null}</Fact>
         <Fact label="Site">{idea.shows_operational ? idea.site ?? "Not provided" : null}</Fact>
         <Fact label="Department">{idea.shows_operational ? idea.department ?? "Not provided" : null}</Fact>
       </dl>

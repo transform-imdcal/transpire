@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, CalendarClock, ChartColumn, Check, CheckCircle2, Circle, CircleDot, Clock3, FilePenLine, FileText, IndianRupee, ListChecks, LockKeyhole, Pencil, Plus, RefreshCw, RotateCcw, Route, Send, ShieldCheck, Tags, Target, Timer, Trash2, UserPlus, Users, X, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarClock, ChartColumn, Check, CheckCircle2, Circle, CircleDot, Clock3, FilePenLine, FileText, IndianRupee, ListChecks, LockKeyhole, Paperclip, Pencil, Plus, RefreshCw, RotateCcw, Route, Send, ShieldCheck, Tags, Target, Timer, Trash2, UserPlus, Users, X, XCircle } from "lucide-react";
 import { TenantLink as Link } from "@/components/app/tenant-link";
 import { useTenantRouter as useRouter } from "@/lib/use-tenant-router";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -14,6 +14,8 @@ import { SectionCard, StatusPill, SummaryStrip, type SummaryItem } from "@/compo
 import { apiRequest } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 import { IdeaJourney } from "@/components/ui/idea-journey";
+import { IdeaAttachments } from "@/components/ideas/idea-attachments";
+import { IdeaEndorsements } from "@/components/ideas/idea-endorsements";
 import styles from "./idea-detail.module.css";
 import { ReviewComments } from "./review-comments";
 
@@ -122,7 +124,7 @@ export function IdeaDetail({ ideaId }: { ideaId: string }) {
       <button type="button" data-active={section === "approval"} aria-current={section === "approval" ? "true" : undefined} onClick={() => setSection("approval")}><Route size={16} />Approval route <span>{idea.approval_stages.length}</span></button>
       <button type="button" data-active={section === "project-charter"} aria-current={section === "project-charter" ? "true" : undefined} onClick={() => setSection("project-charter")}>{idea.charter_available ? <FilePenLine size={16} /> : <LockKeyhole size={16} />}Project charter</button>
     </nav>
-    {section === "overview" ? <Overview idea={idea} /> : null}
+    {section === "overview" ? <Overview idea={idea} viewerId={session.user.id} /> : null}
     {section === "approval" ? <>
       <ApprovalPanel idea={idea} actionable={actionable} decision={decision} comment={comment} busy={busy === "approval"} onDecision={setDecision} onComment={setComment} onSubmit={() => void actOnApproval()} />
       <div className={styles.reviewComments}><ReviewComments ideaId={idea.id} refreshKey={commentsKey} /></div>
@@ -149,13 +151,15 @@ export function IdeaDetail({ ideaId }: { ideaId: string }) {
   </AdminShell>;
 }
 
-function Overview({ idea }: { idea: Idea }) { return <div className={styles.split}>
+function Overview({ idea, viewerId }: { idea: Idea; viewerId: string }) { return <div className={styles.split}>
   <div>
     <SectionCard icon={<FileText size={17} />} title="The opportunity and proposed direction"><div className={styles.narrativeGrid}><Detail label="Problem statement" value={idea.problem_statement} /><Detail label="Business case and proposed solution" value={idea.business_case} /><Detail label="Current state or baseline" value={measure(idea.current_state, idea.baseline_uom)} /><Detail label="Target state or KPI" value={measure(idea.target_state, idea.target_uom)} /></div></SectionCard>
     <SectionCard icon={<IndianRupee size={17} />} title="The value case recorded at submission" description="Estimates until Finance validates them."><dl className={styles.facts}><Financial label="Estimated annual saving" inr={idea.estimated_annual_saving} usd={idea.estimated_annual_saving_usd} /><Financial label="Cost avoidance" inr={idea.cost_avoidance} usd={idea.cost_avoidance_usd} /><Financial label="Investment required" inr={idea.investment_required} usd={idea.investment_required_usd} /><div><dt>SQDCP impact</dt><dd>{idea.impacts.length ? idea.impacts.map(capitalize).join(", ") : "Not provided"}</dd></div></dl>{idea.usd_exchange_rate && idea.fx_rate_date ? <p className={styles.fxProvenance}>USD equivalents use the INR to USD rate fixed on {formatDate(idea.fx_rate_date)}.</p> : null}</SectionCard>
+    <SectionCard icon={<Paperclip size={17} />} title="Supporting documents" description="Evidence attached by the submitter. Open a file to read it in full."><IdeaAttachments ideaId={idea.id} editable={false} /></SectionCard>
+    <IdeaEndorsements ideaId={idea.id} viewerId={viewerId} headingLevel={2} />
   </div>
   <div>
-    <SectionCard icon={<Tags size={17} />} title="Where the improvement belongs" tinted><dl className={styles.metadata}><DetailItem label="Submitted by" value={idea.submitter_name} note={idea.submitter_email} /><DetailItem label="Submitted" value={idea.submitted_at ? formatDate(idea.submitted_at) : null} /><DetailItem label="Site" value={idea.site} /><DetailItem label="Department" value={idea.department} /><DetailItem label="Category" value={idea.category} /><DetailItem label="Subcategory" value={idea.subcategory} /><DetailItem label="Process area" value={idea.process_area} /></dl></SectionCard>
+    <SectionCard icon={<Tags size={17} />} title="Where the improvement belongs" tinted><dl className={styles.metadata}><DetailItem label="Submitted by" value={idea.submitter_name} note={idea.submitter_email} /><DetailItem label="Submitted" value={idea.submitted_at ? formatDate(idea.submitted_at) : null} /><DetailItem label="Site" value={idea.site} /><DetailItem label="Department" value={idea.department} /><DetailItem label="Category" value={idea.category} /><DetailItem label="Subcategory" value={idea.subcategory} /></dl></SectionCard>
   </div>
 </div>; }
 

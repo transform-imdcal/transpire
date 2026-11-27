@@ -390,13 +390,17 @@ async def list_members(
 ) -> list[TenantMemberSummary]:
     async with session.begin():
         await apply_tenant_to_transaction(session, tenant_id)
+        from app.domains.directory.controllers import hr_profiles_by_user
+
         members = await repository.list_members(session, tenant_id)
         sign_ins = await last_sign_ins(session, tenant_id, [record.user.id for record in members])
+        profiles = await hr_profiles_by_user(session, tenant_id)
         summaries = []
         for record in members:
             role_keys = await identity_repository.get_role_keys(
                 session, tenant_id, record.membership.id
             )
+            profile = profiles.get(record.user.id)
             summaries.append(
                 TenantMemberSummary(
                     id=record.membership.id,
@@ -408,6 +412,15 @@ async def list_members(
                     and record.user.id != actor.user.id
                     and all(can_manage_role(actor.roles, key) for key in role_keys),
                     last_signed_in_at=sign_ins.get(record.user.id),
+                    provisioned_by=record.membership.provisioned_by,
+                    employee_id=profile.employee_id if profile else None,
+                    department=profile.department if profile else None,
+                    sub_department=profile.sub_department if profile else None,
+                    location=profile.location if profile else None,
+                    manager_name=profile.manager_name if profile else None,
+                    hod_name=profile.hod_name if profile else None,
+                    hr_status=profile.status if profile else None,
+                    is_approver=profile.is_approver if profile else False,
                 )
             )
         return summaries
@@ -440,9 +453,7 @@ ROLE_MEANING = {
     "tenant_admin": (
         "You can manage configuration, approval workflows, and Viewers and Contributors."
     ),
-    "workspace_owner": (
-        "You have full control, including roles, sign-in and security settings."
-    ),
+    "workspace_owner": ("You have full control, including roles, sign-in and security settings."),
 }
 
 

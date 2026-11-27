@@ -49,7 +49,9 @@ async def test_platform_provisioning_invitation_and_tenant_admin_journey() -> No
             "first_admin_email": administrator_email,
             "first_admin_name": "Journey Administrator",
         }
-        rejected_without_csrf = await client.post(f"{platform_prefix}/platform/tenants", json=command)
+        rejected_without_csrf = await client.post(
+            f"{platform_prefix}/platform/tenants", json=command
+        )
         assert rejected_without_csrf.status_code == 403
 
         csrf_token = client.cookies.get(settings.csrf_cookie_name)
@@ -436,11 +438,14 @@ async def test_platform_provisioning_invitation_and_tenant_admin_journey() -> No
         assert next(stage for stage in rounds if stage["round_number"] == 1)["status"] == (
             "needs_correction"
         )
-        assert next(
-            stage
-            for stage in rounds
-            if stage["round_number"] == 2 and stage["stage_order"] == 1
-        )["status"] == "pending"
+        assert (
+            next(
+                stage
+                for stage in rounds
+                if stage["round_number"] == 2 and stage["stage_order"] == 1
+            )["status"]
+            == "pending"
+        )
         await submitter_client.aclose()
         tenant_audit = await tenant_client.get(f"{tenant_prefix}/audit/events?page_size=100")
         assert tenant_audit.status_code == 200, tenant_audit.text
@@ -690,9 +695,9 @@ async def test_platform_provisioning_invitation_and_tenant_admin_journey() -> No
         multi_tenant_secure_data = decrypt_template_data(
             multi_tenant_delivery.encrypted_template_data, settings
         )
-        multi_tenant_token = parse_qs(
-            urlparse(str(multi_tenant_secure_data["action_url"])).query
-        )["token"][0]
+        multi_tenant_token = parse_qs(urlparse(str(multi_tenant_secure_data["action_url"])).query)[
+            "token"
+        ][0]
         accepted_existing_account = await tenant_client.post(
             "/api/v1/auth/invitations/accept",
             json={"token": multi_tenant_token},
@@ -749,14 +754,18 @@ async def test_platform_provisioning_invitation_and_tenant_admin_journey() -> No
         async with httpx.AsyncClient(
             transport=transport, base_url="http://localhost"
         ) as unavailable_client:
-            assert (await unavailable_client.get(f"{tenant_prefix}/auth/session")).status_code == 403
+            assert (
+                await unavailable_client.get(f"{tenant_prefix}/auth/session")
+            ).status_code == 403
         activated = await client.patch(
             f"{platform_prefix}/platform/tenants/{tenant_id}/status",
             json={"status": "active"},
             headers={"X-CSRF-Token": platform_csrf},
         )
         assert activated.status_code == 204
-        platform_members = await client.get(f"{platform_prefix}/platform/tenants/{tenant_id}/members")
+        platform_members = await client.get(
+            f"{platform_prefix}/platform/tenants/{tenant_id}/members"
+        )
         assert platform_members.status_code == 200
         managed_member = next(
             item
@@ -786,4 +795,4 @@ async def test_platform_provisioning_invitation_and_tenant_admin_journey() -> No
         async with httpx.AsyncClient(
             transport=transport, base_url="http://localhost"
         ) as removed_client:
-                assert (await removed_client.get(f"{tenant_prefix}/auth/session")).status_code == 403
+            assert (await removed_client.get(f"{tenant_prefix}/auth/session")).status_code == 403

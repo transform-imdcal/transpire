@@ -19,10 +19,18 @@ dependencies = [
   "httpx>=0.28,<1",
   "openpyxl>=3.1.5",
   "asyncssh>=2.23.1",
+  "boto3>=1.35,<2",
+  "pypdfium2>=4.30,<5",
+  "pillow>=11,<13",
 ]
 
 [tool.setuptools.package-data]
-"app.domains.communications" = ["templates/*.html", "templates/*.txt"]
+"app.domains.communications" = [
+  "templates/*.html",
+  "templates/*.txt",
+  "assets/*.png",
+  "assets/*.jpg",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -30,7 +38,13 @@ include = ["app*"]
 exclude = ["migrations*", "scripts*", "tests*"]
 
 [project.optional-dependencies]
-dev = ["httpx>=0.28,<1", "pytest>=8.4,<9", "pytest-asyncio>=1.0,<2", "ruff>=0.12,<1"]
+dev = [
+    "httpx>=0.28,<1",
+    "moto[s3,server]>=5,<6",
+    "pytest>=8.4,<9",
+    "pytest-asyncio>=1.0,<2",
+    "ruff>=0.12,<1",
+]
 
 [tool.ruff]
 line-length = 100

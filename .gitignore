@@ -33,3 +33,4 @@ deploy/backend.env
 # HR employee reports (personal data): never commit
 backend/file/hrms_data/**
 !backend/file/hrms_data/.gitkeep
+backend/file/storage/

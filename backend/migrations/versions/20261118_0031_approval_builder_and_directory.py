@@ -26,10 +26,16 @@ depends_on: str | Sequence[str] | None = None
 def _timestamps() -> list[sa.Column]:
     return [
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
     ]
 
@@ -114,11 +120,18 @@ def upgrade() -> None:
         sa.Column("file_sha256", sa.String(64), nullable=False),
         sa.Column("source", sa.String(16), nullable=False, server_default="inbox"),
         sa.Column("status", sa.String(16), nullable=False),
-        sa.Column("summary", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
-        sa.Column("report", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")),
+        sa.Column(
+            "summary", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")
+        ),
+        sa.Column(
+            "report", postgresql.JSONB(), nullable=False, server_default=sa.text("'{}'::jsonb")
+        ),
         sa.Column("actor_user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["actor_user_id"], ["users.id"], ondelete="SET NULL"),
@@ -127,7 +140,9 @@ def upgrade() -> None:
             name="ck_directory_runs_status",
         ),
     )
-    op.create_index("ix_directory_runs_tenant_created", "directory_runs", ["tenant_id", "created_at"])
+    op.create_index(
+        "ix_directory_runs_tenant_created", "directory_runs", ["tenant_id", "created_at"]
+    )
     op.create_index("ix_directory_runs_tenant_sha", "directory_runs", ["tenant_id", "file_sha256"])
     _isolate("directory_runs")
 
@@ -136,9 +151,7 @@ def upgrade() -> None:
         sa.Column("provisioned_by", sa.String(24), nullable=False, server_default="manual"),
     )
 
-    op.drop_constraint(
-        "uq_idea_approval_stage_round_order", "idea_approval_stages", type_="unique"
-    )
+    op.drop_constraint("uq_idea_approval_stage_round_order", "idea_approval_stages", type_="unique")
     op.create_index(
         "ix_idea_approval_stages_idea_round_order",
         "idea_approval_stages",

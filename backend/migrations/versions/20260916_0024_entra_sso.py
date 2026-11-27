@@ -19,14 +19,29 @@ depends_on: str | Sequence[str] | None = None
 
 def _timestamps() -> list[sa.Column]:
     return [
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
     ]
 
 
 def upgrade() -> None:
-    op.add_column("auth_sessions", sa.Column("scope", sa.String(length=32), nullable=False, server_default="full"))
-    op.add_column("auth_sessions", sa.Column("incident_reference", sa.String(length=160), nullable=True))
+    op.add_column(
+        "auth_sessions",
+        sa.Column("scope", sa.String(length=32), nullable=False, server_default="full"),
+    )
+    op.add_column(
+        "auth_sessions", sa.Column("incident_reference", sa.String(length=160), nullable=True)
+    )
     op.create_table(
         "tenant_sso_configurations",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -45,13 +60,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("tenant_id", name="uq_tenant_sso_configuration_tenant"),
     )
-    op.create_index("ix_tenant_sso_configuration_directory", "tenant_sso_configurations", ["entra_directory_id"])
+    op.create_index(
+        "ix_tenant_sso_configuration_directory", "tenant_sso_configurations", ["entra_directory_id"]
+    )
     op.create_table(
         "external_identities",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("tenant_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("provider", sa.String(length=32), nullable=False, server_default="microsoft_entra"),
+        sa.Column(
+            "provider", sa.String(length=32), nullable=False, server_default="microsoft_entra"
+        ),
         sa.Column("provider_tenant_id", sa.String(length=64), nullable=False),
         sa.Column("subject", sa.String(length=255), nullable=False),
         sa.Column("linked_email", sa.String(length=320), nullable=False),
@@ -59,10 +78,16 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("provider", "provider_tenant_id", "subject", name="uq_external_identity_subject"),
-        sa.UniqueConstraint("tenant_id", "user_id", "provider", name="uq_external_identity_tenant_user_provider"),
+        sa.UniqueConstraint(
+            "provider", "provider_tenant_id", "subject", name="uq_external_identity_subject"
+        ),
+        sa.UniqueConstraint(
+            "tenant_id", "user_id", "provider", name="uq_external_identity_tenant_user_provider"
+        ),
     )
-    op.create_index("ix_external_identities_tenant_user", "external_identities", ["tenant_id", "user_id"])
+    op.create_index(
+        "ix_external_identities_tenant_user", "external_identities", ["tenant_id", "user_id"]
+    )
     op.create_table(
         "oidc_login_states",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -104,7 +129,12 @@ def upgrade() -> None:
     op.create_index("ix_sso_recovery_tokens_hash", "sso_recovery_tokens", ["token_hash"])
     op.create_index("ix_sso_recovery_tokens_expires", "sso_recovery_tokens", ["expires_at"])
 
-    for table in ("tenant_sso_configurations", "external_identities", "oidc_login_states", "sso_recovery_tokens"):
+    for table in (
+        "tenant_sso_configurations",
+        "external_identities",
+        "oidc_login_states",
+        "sso_recovery_tokens",
+    ):
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         op.execute(

@@ -11,6 +11,7 @@ from app.domains.identity.dependencies import (
     SessionDependency,
     TenantDependency,
 )
+from app.domains.projects.charters import list_charters
 from app.domains.projects.controllers import (
     ProjectAccessError,
     ProjectNotFoundError,
@@ -32,6 +33,7 @@ from app.domains.projects.controllers import (
 from app.domains.projects.schemas import (
     BenefitMonthCommand,
     BenefitReviewCommand,
+    CharterListEntry,
     MilestoneCreateCommand,
     MilestoneMoveCommand,
     MilestonePatchCommand,
@@ -58,6 +60,13 @@ async def get_projects(
     _: AuthenticatedIdentity, tenant: TenantDependency, session: SessionDependency
 ) -> list[ProjectPortfolioEntry]:
     return await list_projects(tenant.tenant_id, session)
+
+
+@router.get("/charters", response_model=list[CharterListEntry])
+async def get_charters(
+    identity: AuthenticatedIdentity, tenant: TenantDependency, session: SessionDependency
+) -> list[CharterListEntry]:
+    return await list_charters(tenant.tenant_id, identity.user.id, session)
 
 
 @router.get("/{project_id}/charter", response_model=CharterWorkspaceRecord)

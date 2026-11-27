@@ -11,6 +11,7 @@ def production_settings(**overrides: object) -> Settings:
         "SESSION_COOKIE_SECURE": True,
         "OUTBOX_ENCRYPTION_KEY": "valid-production-outbox-key",
         "ALLOWED_HOSTS": "transpire.example.com,api.transpire.example.com",
+        "STORAGE_BACKEND": "s3",
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -21,6 +22,7 @@ def production_settings(**overrides: object) -> Settings:
     [
         {"SESSION_COOKIE_SECURE": False},
         {"OUTBOX_ENCRYPTION_KEY": ""},
+        {"STORAGE_BACKEND": "local"},
         {"ALLOWED_HOSTS": "*"},
     ],
 )

@@ -46,3 +46,4 @@
 .joinActions button { cursor: pointer; border: 0; font: inherit; font-size: var(--tp-text-sm); }
 .joinActions .rowLink { border: 1px solid var(--tp-line-strong); }
 .joinActions button:disabled { cursor: progress; opacity: .7; }
+.joinList q { display: block; margin-top: .35rem; color: var(--muted); font-size: var(--tp-text-sm); line-height: 1.45; }

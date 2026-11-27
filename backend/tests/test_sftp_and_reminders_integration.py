@@ -152,11 +152,6 @@ async def test_sftp_fetch_pins_host_key_and_reminders_escalate(tmp_path: Path) -
         async with client() as owner, client() as umang, client() as ravi:
             owner_h = await _join(owner, tenant_id, prefix, owner_email)
             sftp = f"{prefix}/admin/directory/sftp"
-            await owner.put(
-                f"{prefix}/admin/directory/settings",
-                json={"invite_new_employees": True},
-                headers=owner_h,
-            )
 
             # Dangerous destinations are refused before any connection is made.
             for host, phrase in (("169.254.169.254", "not allowed"), ("10.1.2.3", "private")):
@@ -214,6 +209,14 @@ async def test_sftp_fetch_pins_host_key_and_reminders_escalate(tmp_path: Path) -
             assert fetched["run"]["status"] == "applied" and fetched["run"]["summary"]["new"] == 3
             again = (await owner.post(f"{sftp}/fetch", headers=owner_h)).json()
             assert again["run"]["status"] == "duplicate"
+            # Imported employees wait for verification; nobody is invited by the sync.
+            assert fetched["run"]["summary"]["awaiting_verification"] == 3
+            verified = await owner.post(
+                f"{prefix}/admin/directory/employees/verify",
+                json={"employee_ids": ["100", "200", "300"]},
+                headers=owner_h,
+            )
+            assert len(verified.json()["invited"]) == 3, verified.text
 
             # Admins may run it, but only Owners change where credentials go.
             assert (await owner.get(sftp)).json()["enabled"] is False

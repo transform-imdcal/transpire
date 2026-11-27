@@ -1,0 +1,11 @@
+.role { display: inline-flex; width: fit-content; align-items: center; border-radius: 999px; margin-top: .3rem; padding: .1rem .55rem; background: var(--tp-blue-soft); color: var(--blue-deep); font-size: .75rem; font-weight: 760; }
+.continue { display: inline-flex; min-height: 2.25rem; align-items: center; gap: .35rem; border: 1px solid var(--blue); border-radius: .25rem; padding: .35rem .7rem; background: var(--blue); color: var(--on-accent); font-size: var(--tp-text-sm); font-weight: 760; text-decoration: none; white-space: nowrap; }
+.continue:hover, .continue:focus-visible { border-color: var(--blue-deep); background: var(--blue-deep); }
+.view { display: inline-flex; min-height: 2.25rem; align-items: center; gap: .35rem; border: 1px solid var(--tp-line-strong); border-radius: .25rem; padding: .35rem .7rem; background: var(--tp-surface); color: var(--blue-deep); font-size: var(--tp-text-sm); font-weight: 760; text-decoration: none; white-space: nowrap; }
+.view:hover, .view:focus-visible { background: var(--tp-blue-soft); }
+.people { display: grid; gap: .1rem; }
+.people strong { font-size: var(--tp-text-sm); font-weight: 720; }
+/* Five columns, not the portfolio's eight: fit a laptop screen without sideways scrolling. */
+.compact .fit { min-width: 46rem; }
+.compact .fit td:first-child { min-width: 16rem; }
+.action { width: 1%; text-align: right; white-space: nowrap; }

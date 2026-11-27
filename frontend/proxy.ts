@@ -9,8 +9,10 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/audit/:path*",
+    "/charters/:path*",
     "/home/:path*",
     "/ideas/:path*",
+    "/leaderboard/:path*",
     "/notifications/:path*",
     "/profile/:path*",
     "/projects/:path*",

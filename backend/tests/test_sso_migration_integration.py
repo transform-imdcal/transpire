@@ -53,9 +53,7 @@ async def test_sso_cutover_preserves_identities_notifies_once_and_restricts_reco
             delete(SSORecoveryToken).where(SSORecoveryToken.tenant_id == tenant.id)
         )
         await session.execute(
-            delete(TenantSSOConfiguration).where(
-                TenantSSOConfiguration.tenant_id == tenant.id
-            )
+            delete(TenantSSOConfiguration).where(TenantSSOConfiguration.tenant_id == tenant.id)
         )
         user = await session.scalar(
             select(User).where(User.email == str(settings.development_admin_email))
@@ -69,7 +67,9 @@ async def test_sso_cutover_preserves_identities_notifies_once_and_restricts_reco
                 )
             )
         )
-        identity_snapshot = {(membership.id, membership.user_id) for membership in active_memberships}
+        identity_snapshot = {
+            (membership.id, membership.user_id) for membership in active_memberships
+        }
         session.add(
             TenantSSOConfiguration(
                 tenant_id=tenant.id,
@@ -167,9 +167,7 @@ async def test_sso_cutover_preserves_identities_notifies_once_and_restricts_reco
             assert redeemed.status_code == 204
             recovery_csrf = recovery_client.cookies.get(settings.csrf_cookie_name)
             assert recovery_csrf
-            blocked_from_people = await recovery_client.get(
-                f"{tenant_prefix}/admin/members"
-            )
+            blocked_from_people = await recovery_client.get(f"{tenant_prefix}/admin/members")
             repaired = await recovery_client.put(
                 f"{tenant_prefix}/admin/sso/recovery",
                 headers={"X-CSRF-Token": recovery_csrf},
@@ -188,12 +186,12 @@ async def test_sso_cutover_preserves_identities_notifies_once_and_restricts_reco
                     )
                 )
             )
-            assert {(membership.id, membership.user_id) for membership in memberships_after} == identity_snapshot
+            assert {
+                (membership.id, membership.user_id) for membership in memberships_after
+            } == identity_snapshot
             assert await session.get(User, user_id) is not None
             config = await session.scalar(
-                select(TenantSSOConfiguration).where(
-                    TenantSSOConfiguration.tenant_id == tenant_id
-                )
+                select(TenantSSOConfiguration).where(TenantSSOConfiguration.tenant_id == tenant_id)
             )
             assert config is not None
             assert config.entra_directory_id == repaired_directory_id
@@ -217,7 +215,5 @@ async def test_sso_cutover_preserves_identities_notifies_once_and_restricts_reco
                 )
             )
             await session.execute(
-                delete(TenantSSOConfiguration).where(
-                    TenantSSOConfiguration.tenant_id == tenant_id
-                )
+                delete(TenantSSOConfiguration).where(TenantSSOConfiguration.tenant_id == tenant_id)
             )

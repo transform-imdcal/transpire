@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, CalendarClock, Check, CheckCircle2, ClipboardCheck, Clock3, RotateCcw, Send, Users, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, Check, CheckCircle2, ClipboardCheck, Clock3, HandHeart, RotateCcw, Send, Users, X } from "lucide-react";
 import { TenantLink as Link } from "@/components/app/tenant-link";
 import { useTenantRouter as useRouter } from "@/lib/use-tenant-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -15,7 +15,8 @@ import styles from "./notifications.module.css";
 type Idea = { id: string; reference: string; title: string; status: string; current_stage: string | null; correction_reason: string | null; updated_at: string };
 type Approval = { idea_id: string; reference: string; title: string; stage_id: string; stage_name: string; submitted_by: string; submitted_at: string | null; due_at: string | null };
 type JoinRequest = { id: string; idea_id: string; idea_reference: string; idea_title: string; requester_name: string; requester_email: string; message: string; created_at: string };
-type Summary = { ideas: Idea[]; approval_items: Approval[]; join_requests?: JoinRequest[] };
+type EndorsementRequest = { id: string; idea_id: string; idea_reference: string; idea_title: string; owner_name: string; message: string; requested_at: string };
+type Summary = { ideas: Idea[]; approval_items: Approval[]; join_requests?: JoinRequest[]; endorsement_requests?: EndorsementRequest[] };
 
 export function NotificationsWorkspace() {
   const router = useRouter();
@@ -53,6 +54,17 @@ export function NotificationsWorkspace() {
     finally { setAnswering(""); }
   };
 
+  const endorse = async (request: EndorsementRequest) => {
+    setAnswering(request.id); setError("");
+    try {
+      const response = await apiRequest(`/ideas/${request.idea_id}/endorsements/${request.id}/respond`, { method: "POST", body: JSON.stringify({ decision: "endorse", comment: "" }) });
+      if (!response.ok) { const body = await response.json().catch(() => null) as { detail?: string } | null; throw new Error(body?.detail ?? "That didn't go through. Try again."); }
+      window.dispatchEvent(new Event("transpire:inbox-changed"));
+      await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "That didn't go through. Try again."); }
+    finally { setAnswering(""); }
+  };
+
   const ownJourneys = useMemo(() => summary?.ideas.filter((idea) => ["submitted", "needs_correction"].includes(idea.status)) ?? [], [summary]);
   if (loading || !session || (!summary && !error)) return <main className={styles.loading}>Opening approval notifications</main>;
   const approvalItems = summary?.approval_items ?? [];
@@ -77,6 +89,15 @@ export function NotificationsWorkspace() {
         <div className={styles.joinActions}>
           <button type="button" className={styles.review} disabled={Boolean(answering)} onClick={() => void answer(request, "accept")}><Check size={15} aria-hidden="true" />Add to team</button>
           <button type="button" className={styles.rowLink} disabled={Boolean(answering)} onClick={() => void answer(request, "decline")}><X size={15} aria-hidden="true" />Decline</button>
+        </div>
+      </li>)}</ul>
+    </SectionCard> : null}
+    {summary.endorsement_requests?.length ? <SectionCard id="endorsements" icon={<HandHeart size={17} />} title="Endorsements asked of you" meta={`${summary.endorsement_requests.length} waiting`} flush>
+      <ul className={styles.joinList}>{summary.endorsement_requests.map((request) => <li key={request.id}>
+        <div><strong>{request.owner_name}</strong> asked you to endorse <Link className={styles.ideaLink} href={`/ideas/${request.idea_id}/summary`}>{request.idea_title}</Link><small>{request.idea_reference} · asked {formatDate(request.requested_at)}</small>{request.message ? <q>{request.message}</q> : null}</div>
+        <div className={styles.joinActions}>
+          <button type="button" className={styles.review} disabled={Boolean(answering)} onClick={() => void endorse(request)}><Check size={15} aria-hidden="true" />Endorse</button>
+          <Link className={styles.rowLink} href={`/ideas/${request.idea_id}/summary`}>Read, comment or decline<ArrowRight size={15} aria-hidden="true" /></Link>
         </div>
       </li>)}</ul>
     </SectionCard> : null}

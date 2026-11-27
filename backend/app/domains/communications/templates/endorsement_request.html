@@ -1,0 +1,10 @@
+{% extends "base_modern.html" %}
+{% from "_components.html" import details, closing %}
+{% block preheader %}{{ owner_name }} would value your endorsement of {{ idea_reference }}.{% endblock %}
+{% block badge %}Endorsement requested{% endblock %}
+{% block title %}Will you back this idea?{% endblock %}
+{% block intro %}Hi {{ recipient_name.split(' ')[0] }}, {{ owner_name }} has asked you to endorse their idea. An endorsement tells reviewers you support it. It doesn't approve or block anything.{% endblock %}
+{% block body %}
+  {{ details([("Reference", idea_reference), ("Idea", idea_title), ("Problem", problem_statement), ("Their note to you", owner_message)]) }}
+  {{ closing("You can endorse it, with an optional comment, or decline. Either answer is fine.") }}
+{% endblock %}

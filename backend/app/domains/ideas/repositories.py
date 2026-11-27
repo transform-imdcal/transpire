@@ -114,7 +114,7 @@ class SQLAlchemyIdeaRepository:
                             ConfigurationItem.kind == "department",
                             ConfigurationItem.kind == "category",
                             ConfigurationItem.kind == "subcategory",
-                            ConfigurationItem.kind == "process_area",
+                            ConfigurationItem.kind == "capex_subtype",
                         ),
                     )
                     .order_by(ConfigurationItem.sort_order, ConfigurationItem.name)

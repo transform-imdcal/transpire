@@ -545,9 +545,7 @@ async def select_workspace(
     return outcome
 
 
-async def list_user_workspaces(
-    user_id: uuid.UUID, session: AsyncSession
-) -> list[WorkspaceChoice]:
+async def list_user_workspaces(user_id: uuid.UUID, session: AsyncSession) -> list[WorkspaceChoice]:
     async with session.begin():
         workspaces = await repository.list_active_user_workspaces(session, user_id)
         return [
@@ -569,9 +567,7 @@ async def request_global_password_reset(
         rate_limit = await consume_global_rate_limit(
             session,
             action="password_reset",
-            key_hash=authentication_key(
-                "password_reset", normalized_email, client.ip_address
-            ),
+            key_hash=authentication_key("password_reset", normalized_email, client.ip_address),
             limit=settings.password_reset_rate_limit,
             window_seconds=settings.auth_rate_window_seconds,
             block_seconds=settings.auth_rate_block_seconds,
@@ -580,9 +576,7 @@ async def request_global_password_reset(
             return
 
         user = await repository.get_global_sign_in_user(session, normalized_email)
-        workspaces = (
-            await repository.list_active_user_workspaces(session, user.id) if user else []
-        )
+        workspaces = await repository.list_active_user_workspaces(session, user.id) if user else []
         if user is None or not workspaces:
             generate_session_token()
             return
@@ -621,9 +615,7 @@ async def request_global_password_reset(
                             "with Microsoft SSO. Use your work account instead"
                         ),
                         "event_time": now.strftime("%d %B %Y at %H:%M UTC"),
-                        "action_url": tenant_frontend_url(
-                            settings, workspace.slug, "/sign-in"
-                        ),
+                        "action_url": tenant_frontend_url(settings, workspace.slug, "/sign-in"),
                         "action_label": "Sign in with Microsoft",
                         **preferences_link(settings, workspace.slug),
                     },
@@ -643,9 +635,7 @@ async def request_global_password_reset(
                 client=client,
             )
         )
-        await repository.expire_password_reset_tokens(
-            session, workspace.tenant_id, user.id, now
-        )
+        await repository.expire_password_reset_tokens(session, workspace.tenant_id, user.id, now)
         raw_token = generate_session_token()
         session.add(
             PasswordResetToken(
@@ -824,12 +814,12 @@ async def request_password_reset(
             ),
             settings,
             sensitive_template_data={
-                    "action_url": tenant_frontend_url(
-                        settings,
-                        tenant.slug,
-                        "/reset-password",
-                        query={"token": raw_token},
-                    )
+                "action_url": tenant_frontend_url(
+                    settings,
+                    tenant.slug,
+                    "/reset-password",
+                    query={"token": raw_token},
+                )
             },
         )
 
@@ -895,9 +885,7 @@ async def reset_password(
                         "tenant_name": tenant.name,
                         "event_description": "Your password was changed",
                         "event_time": now.strftime("%d %B %Y at %H:%M UTC"),
-                        "action_url": tenant_frontend_url(
-                            settings, tenant.slug, "/sign-in"
-                        ),
+                        "action_url": tenant_frontend_url(settings, tenant.slug, "/sign-in"),
                         "action_label": "Return to TRANSPIRE",
                         **preferences_link(settings, tenant.slug),
                     },
@@ -1041,9 +1029,7 @@ async def accept_invitation(
                             "tenant_name": tenant.name,
                             "event_description": "Your invitation was accepted",
                             "event_time": now.strftime("%d %B %Y at %H:%M UTC"),
-                            "action_url": tenant_frontend_url(
-                                settings, tenant.slug, "/sign-in"
-                            ),
+                            "action_url": tenant_frontend_url(settings, tenant.slug, "/sign-in"),
                             "action_label": "Sign in to TRANSPIRE",
                             **preferences_link(settings, tenant.slug),
                         },
