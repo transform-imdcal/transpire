@@ -151,7 +151,6 @@ button[data-active="true"] .radioDot::after { width: .6rem; height: .6rem; borde
 .payback[data-calculated="true"] { border-color: var(--tp-success-line); background: var(--tp-success-soft); }
 .payback[data-calculated="true"] > svg, .payback[data-calculated="true"] strong { color: var(--tp-success); }
 .payback[data-calculated="true"] strong { font-size: 1.3rem; letter-spacing: -.01em; }
-.evidenceNote { padding: 1rem 1.1rem; }
 .visuallyHidden { position: absolute; overflow: hidden; width: 1px; height: 1px; padding: 0; border: 0; margin: -1px; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Review */

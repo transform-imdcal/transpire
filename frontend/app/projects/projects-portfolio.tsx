@@ -1,13 +1,13 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, CheckCircle2, FilePen, FolderKanban, IndianRupee, OctagonAlert, RefreshCw, SearchCheck, SlidersHorizontal, X } from "lucide-react";
+import { ArrowRight, FolderKanban, RefreshCw } from "lucide-react";
 import { TenantLink as Link } from "@/components/app/tenant-link";
 import { useTenantRouter as useRouter } from "@/lib/use-tenant-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { SearchField } from "@/components/ui/search-field";
+import { RegisterToolbar, type RegisterView } from "@/components/ui/register-toolbar";
 import { SelectField } from "@/components/ui/select-field";
-import { SectionCard, SummaryStrip } from "@/components/ui/workspace";
+import { SectionCard } from "@/components/ui/workspace";
 import { apiRequest } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 import {
@@ -20,10 +20,22 @@ import {
 import { HealthPill, ProjectStatusPill, healthStates, healthTone, projectStatuses } from "./project-status";
 import styles from "./projects.module.css";
 
+type Project = ProjectPortfolioRecord;
+const projectViews: Record<string, (project: Project) => boolean> = {
+  chartering: (project) => project.status === "charter_in_progress",
+  active: (project) => ["ready_to_start", "in_progress", "on_hold"].includes(project.status),
+  on_track: (project) => project.health === "on_track",
+  at_risk: (project) => project.health === "at_risk",
+  blocked: (project) => project.health === "blocked",
+  review: (project) => ["completion_review", "oe_verified", "finance_validation"].includes(project.status),
+  success: (project) => project.status === "success",
+};
+
 export function ProjectsPortfolio() {
   const router = useRouter();
   const { session, loading } = useSession();
   const [projects, setProjects] = useState<ProjectPortfolioRecord[]>([]);
+  const [view, setView] = useState("all");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [health, setHealth] = useState("");
@@ -57,8 +69,8 @@ export function ProjectsPortfolio() {
   }, [loadProjects, session]);
 
   const visible = useMemo(
-    () => filterProjects(projects, { query, status, health, site, department }),
-    [department, health, projects, query, site, status],
+    () => filterProjects(projects, { query, status, health, site, department }).filter(projectViews[view] ?? (() => true)),
+    [department, health, projects, query, site, status, view],
   );
   const sites = useMemo(() => uniqueProjectValues(projects, "site"), [projects]);
   const departments = useMemo(
@@ -66,22 +78,20 @@ export function ProjectsPortfolio() {
     [projects],
   );
   const financials = useMemo(() => summarizeFinancials(visible), [visible]);
-  const portfolio = useMemo(() => summarizeFinancials(projects), [projects]);
   const isEmpty = !loadingProjects && !error && projects.length === 0;
-  const filtersActive = Boolean(query || status || health || site || department);
-  const active = projects.filter((project) =>
-    ["ready_to_start", "in_progress", "on_hold"].includes(project.status),
-  ).length;
-  const onTrack = projects.filter((project) => project.health === "on_track").length;
-  const atRisk = projects.filter((project) => project.health === "at_risk").length;
-  const blocked = projects.filter((project) => project.health === "blocked").length;
-  const inReview = projects.filter((project) =>
-    ["completion_review", "oe_verified", "finance_validation"].includes(project.status),
-  ).length;
-  const success = projects.filter((project) => project.status === "success").length;
-  const chartering = projects.filter((project) => project.status === "charter_in_progress").length;
+  const views: RegisterView[] = [
+    { key: "all", label: "All", count: projects.length },
+    { key: "chartering", label: "Charter in progress", count: projects.filter(projectViews.chartering).length, tone: "info", hint: "Approved, charter not yet submitted" },
+    { key: "active", label: "Active", count: projects.filter(projectViews.active).length, tone: "info", hint: "Ready, in progress or on hold" },
+    { key: "on_track", label: "On track", count: projects.filter(projectViews.on_track).length, tone: "success" },
+    { key: "at_risk", label: "At risk", count: projects.filter(projectViews.at_risk).length, tone: "warning" },
+    { key: "blocked", label: "Blocked", count: projects.filter(projectViews.blocked).length, tone: "danger" },
+    { key: "review", label: "Completion review", count: projects.filter(projectViews.review).length, hint: "Completion review, OE verification or finance validation" },
+    { key: "success", label: "Closed as success", count: projects.filter(projectViews.success).length, tone: "success" },
+  ];
 
   const clearFilters = () => {
+    setView("all");
     setQuery("");
     setStatus("");
     setHealth("");
@@ -100,21 +110,6 @@ export function ProjectsPortfolio() {
       title="Projects"
       description="Track implementation, benefits and completion across the organisation."
     >
-      {!loadingProjects && !error && projects.length ? (
-        <SummaryStrip
-          label="Project portfolio summary"
-          items={[
-            { icon: <FilePen size={18} />, value: chartering, label: "Charter in progress", note: "Approved, charter not yet submitted", tone: chartering ? "info" : undefined },
-            { icon: <FolderKanban size={18} />, value: active, label: "Active", note: "Ready, in progress or on hold" },
-            { icon: <CheckCircle2 size={18} />, value: onTrack, label: "On track", tone: "success" },
-            { icon: <AlertTriangle size={18} />, value: atRisk, label: "At risk", note: "Need attention", tone: "warning" },
-            { icon: <OctagonAlert size={18} />, value: blocked, label: "Blocked", tone: "danger" },
-            { icon: <SearchCheck size={18} />, value: inReview, label: "Completion review", note: `${success} closed as success` },
-            { icon: <IndianRupee size={18} />, value: formatLakhs(portfolio.achieved), label: "Achieved", note: `of ${formatLakhs(portfolio.target)} target` },
-          ]}
-        />
-      ) : null}
-
       {error ? (
         <div className={styles.error} role="alert">
           <span>{error}</span>
@@ -124,29 +119,20 @@ export function ProjectsPortfolio() {
         </div>
       ) : null}
 
-      {isEmpty ? null : (
-      <SectionCard
-        icon={<SlidersHorizontal size={17} />}
-        title="Find projects"
-        actions={filtersActive ? (
-          <button className={styles.clear} type="button" onClick={clearFilters}>
-            <X aria-hidden="true" size={14} />
-            Clear filters
-          </button>
-        ) : undefined}
-      >
-        <div className={styles.searchRow}>
-          <SearchField
-            id="project-search"
-            label="Search projects"
-            value={query}
-            onChange={setQuery}
-            placeholder="Search project, idea, lead, site, or department"
-            resultCount={visible.length}
-          />
-        </div>
-
-        <div className={styles.filters}>
+      {loadingProjects || isEmpty || error ? null : (
+        <RegisterToolbar
+          label="Find projects"
+          views={views}
+          activeView={view}
+          onViewChange={setView}
+          query={query}
+          onQueryChange={setQuery}
+          searchLabel="Search projects"
+          searchPlaceholder="Search project, idea, lead, site or department"
+          resultCount={visible.length}
+          filterCount={[status, health, site, department].filter(Boolean).length}
+          onClear={clearFilters}
+        >
           <SelectField
             id="project-status"
             name="status"
@@ -203,27 +189,21 @@ export function ProjectsPortfolio() {
               })),
             ]}
           />
-        </div>
-
-        <section className={styles.benefitSummary} aria-labelledby="portfolio-benefit-heading">
-          <header>
-            <p>Filtered portfolio value</p>
-            <h3 id="portfolio-benefit-heading">Benefits and line of sight</h3>
-          </header>
-          <dl>
-            <div><dt>Target</dt><dd>{formatLakhs(financials.target)}</dd></div>
-            <div><dt>Achieved</dt><dd>{formatLakhs(financials.achieved)}</dd></div>
-            <div><dt>LOS</dt><dd>{formatLakhs(financials.lineOfSight)}</dd></div>
-          </dl>
-        </section>
-      </SectionCard>
+        </RegisterToolbar>
       )}
+
 
       <SectionCard
         className={styles.results}
         icon={<FolderKanban size={17} />}
-        title="Project portfolio"
-        meta={loadingProjects || isEmpty ? undefined : `${visible.length} shown`}
+        title={view === "all" ? "Project portfolio" : `Projects: ${views.find((entry) => entry.key === view)?.label.toLowerCase()}`}
+        meta={loadingProjects || isEmpty ? undefined : (
+          <span className={styles.totals}>
+            <span>Target <b>{formatLakhs(financials.target)}</b></span>
+            <span>Achieved <b>{formatLakhs(financials.achieved)}</b></span>
+            <span>LOS <b>{formatLakhs(financials.lineOfSight)}</b></span>
+          </span>
+        )}
         flush
       >
         {loadingProjects ? (

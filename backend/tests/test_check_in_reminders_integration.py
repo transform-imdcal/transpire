@@ -195,7 +195,9 @@ async def test_admin_check_in_reminders_permissions_eligibility_and_cooldown() -
         assert repeated.json()["skipped"] == [{"membership_id": member_id, "reason": "cooldown"}]
 
         after = await admin.get(f"{tenant_prefix}/admin/check-in-reminders")
-        reminded = next(row for row in after.json()["candidates"] if row["membership_id"] == member_id)
+        reminded = next(
+            row for row in after.json()["candidates"] if row["membership_id"] == member_id
+        )
         assert reminded["last_reminded_at"] is not None
         assert reminded["reminder_count"] == 1
         assert reminded["cooldown_until"] is not None

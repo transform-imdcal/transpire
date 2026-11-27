@@ -57,6 +57,7 @@ class TenantResolutionMiddleware(BaseHTTPMiddleware):
                 "projects",
                 "profile",
                 "audit",
+                "files",
             )
         )
         self.api_v1_prefix = settings.api_v1_prefix.rstrip("/")
@@ -122,9 +123,7 @@ class TenantResolutionMiddleware(BaseHTTPMiddleware):
             )
 
         request.state.tenant = tenant
-        token = set_tenant_context(
-            TenantContext(tenant_id=tenant.tenant_id, slug=tenant.slug)
-        )
+        token = set_tenant_context(TenantContext(tenant_id=tenant.tenant_id, slug=tenant.slug))
         request.scope["path"] = routed_path
         request.scope["raw_path"] = routed_path.encode("utf-8")
         try:

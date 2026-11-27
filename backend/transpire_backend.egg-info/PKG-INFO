@@ -14,9 +14,16 @@ Requires-Dist: jinja2<4,>=3.1
 Requires-Dist: aiosmtplib<6,>=5
 Requires-Dist: pwdlib[argon2]<1,>=0.3
 Requires-Dist: cryptography<47,>=45
+Requires-Dist: certifi>=2025.8.3
 Requires-Dist: httpx<1,>=0.28
+Requires-Dist: openpyxl>=3.1.5
+Requires-Dist: asyncssh>=2.23.1
+Requires-Dist: boto3<2,>=1.35
+Requires-Dist: pypdfium2<5,>=4.30
+Requires-Dist: pillow<13,>=11
 Provides-Extra: dev
 Requires-Dist: httpx<1,>=0.28; extra == "dev"
+Requires-Dist: moto[s3,server]<6,>=5; extra == "dev"
 Requires-Dist: pytest<9,>=8.4; extra == "dev"
 Requires-Dist: pytest-asyncio<2,>=1.0; extra == "dev"
 Requires-Dist: ruff<1,>=0.12; extra == "dev"

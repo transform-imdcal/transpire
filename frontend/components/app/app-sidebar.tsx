@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Bell, ChevronsUpDown, Compass, FileClock, FolderKanban, Home, Inbox, ListFilter, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Sun, X } from "lucide-react";
+import { ArrowLeft, Bell, ChevronsUpDown, Compass, FileClock, FileText, FolderKanban, Home, Inbox, ListFilter, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Settings2, Sun, Trophy, X } from "lucide-react";
 import Image from "next/image";
 import { BetaTag } from "@/components/ui/beta-tag";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -16,7 +16,7 @@ import { ProfileAvatar } from "./profile-avatar";
 import { setTheme, useTheme } from "@/lib/theme";
 import styles from "./app-sidebar.module.css";
 
-export type AppRoute = "home" | "submit" | "ideas" | "projects" | "profile" | "notifications" | AdminRoute;
+export type AppRoute = "home" | "submit" | "ideas" | "charters" | "projects" | "leaderboard" | "profile" | "notifications" | AdminRoute;
 
 type Workspace = { id: string; slug: string; name: string };
 
@@ -94,7 +94,9 @@ export function AppSidebar({ session, active }: { session: SessionIdentity; acti
           <NavGroup label="Workspace">
             <NavItem href="/home" icon={<Home size={18} />} label="Home" tour="nav-home" active={active === "home"} />
             <NavItem href="/ideas" icon={<ListFilter size={18} />} label="Idea Bank" tour="nav-ideas" active={active === "ideas"} />
+            <NavItem href="/charters" icon={<FileText size={18} />} label="Charters" tour="nav-charters" active={active === "charters"} />
             <NavItem href="/projects" icon={<FolderKanban size={18} />} label="Projects" tour="nav-projects" active={active === "projects"} />
+            <NavItem href="/leaderboard" icon={<Trophy size={18} />} label="Leaderboard" tour="nav-leaderboard" active={active === "leaderboard"} />
             <NavItem href="/notifications" icon={<Inbox size={18} />} label="Inbox" tour="nav-inbox" active={active === "notifications"} badge={badge} ariaLabel={approvalCount ? `Inbox, ${approvalCount} need your action` : undefined} />
           </NavGroup>
           {adminHref ? <NavGroup label="Manage">

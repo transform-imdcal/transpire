@@ -148,9 +148,7 @@ async def begin_global_sso(settings: Settings, session: AsyncSession, *, remembe
 async def _configuration(
     session: AsyncSession, tenant_id: uuid.UUID, *, for_update: bool = False
 ) -> TenantSSOConfiguration | None:
-    statement = select(TenantSSOConfiguration).where(
-        TenantSSOConfiguration.tenant_id == tenant_id
-    )
+    statement = select(TenantSSOConfiguration).where(TenantSSOConfiguration.tenant_id == tenant_id)
     if for_update:
         statement = statement.with_for_update()
     return await session.scalar(statement)
@@ -349,14 +347,22 @@ async def _exchange_and_validate(
         )
         jwks_response.raise_for_status()
     key = next(
-        (item for item in jwks_response.json().get("keys", []) if item.get("kid") == header.get("kid")),
+        (
+            item
+            for item in jwks_response.json().get("keys", [])
+            if item.get("kid") == header.get("kid")
+        ),
         None,
     )
     if not key or header.get("alg") != "RS256":
         raise SSOAuthenticationError("Microsoft signing keys could not be verified.")
     public_key = rsa.RSAPublicNumbers(
-        int.from_bytes(base64.urlsafe_b64decode(str(key["e"]) + "=" * (-len(str(key["e"])) % 4)), "big"),
-        int.from_bytes(base64.urlsafe_b64decode(str(key["n"]) + "=" * (-len(str(key["n"])) % 4)), "big"),
+        int.from_bytes(
+            base64.urlsafe_b64decode(str(key["e"]) + "=" * (-len(str(key["e"])) % 4)), "big"
+        ),
+        int.from_bytes(
+            base64.urlsafe_b64decode(str(key["n"]) + "=" * (-len(str(key["n"])) % 4)), "big"
+        ),
     ).public_key()
     try:
         public_key.verify(
@@ -474,7 +480,9 @@ async def complete_sso(
         )
         if login_state.purpose == "validate":
             if user.id != login_state.initiated_by_user_id or not is_workspace_owner(roles):
-                raise SSOAuthenticationError("The validating Microsoft account must match the Workspace Owner.")
+                raise SSOAuthenticationError(
+                    "The validating Microsoft account must match the Workspace Owner."
+                )
             config = await _configuration(session, tenant.tenant_id, for_update=True)
             if config is None:
                 raise SSOAuthenticationError("The SSO configuration no longer exists.")
@@ -482,7 +490,9 @@ async def complete_sso(
             config.validated_at = now
             config.validated_by_user_id = user.id
             return SSOCallbackOutcome(
-                redirect_url=tenant_frontend_url(settings, tenant.slug, "/admin/sign-in?sso=validated")
+                redirect_url=tenant_frontend_url(
+                    settings, tenant.slug, "/admin/sign-in?sso=validated"
+                )
             )
         if config is None or config.status != "active":
             raise SSOAuthenticationError("Microsoft SSO is not active for this organisation.")
@@ -543,20 +553,30 @@ async def _exchange_global_code(
         try:
             directory_id = str(uuid.UUID(directory_id))
         except ValueError as error:
-            raise SSOAuthenticationError("Microsoft returned an invalid directory identity.") from error
+            raise SSOAuthenticationError(
+                "Microsoft returned an invalid directory identity."
+            ) from error
         jwks_response = await client.get(
             "https://login.microsoftonline.com/organizations/discovery/v2.0/keys"
         )
         jwks_response.raise_for_status()
     key = next(
-        (item for item in jwks_response.json().get("keys", []) if item.get("kid") == header.get("kid")),
+        (
+            item
+            for item in jwks_response.json().get("keys", [])
+            if item.get("kid") == header.get("kid")
+        ),
         None,
     )
     if not key or header.get("alg") != "RS256":
         raise SSOAuthenticationError("Microsoft signing keys could not be verified.")
     public_key = rsa.RSAPublicNumbers(
-        int.from_bytes(base64.urlsafe_b64decode(str(key["e"]) + "=" * (-len(str(key["e"])) % 4)), "big"),
-        int.from_bytes(base64.urlsafe_b64decode(str(key["n"]) + "=" * (-len(str(key["n"])) % 4)), "big"),
+        int.from_bytes(
+            base64.urlsafe_b64decode(str(key["e"]) + "=" * (-len(str(key["e"])) % 4)), "big"
+        ),
+        int.from_bytes(
+            base64.urlsafe_b64decode(str(key["n"]) + "=" * (-len(str(key["n"])) % 4)), "big"
+        ),
     ).public_key()
     try:
         public_key.verify(
@@ -584,11 +604,17 @@ async def _global_sso_candidates(
     session: AsyncSession, *, directory_id: str, subject: str, email: str
 ) -> list[SSOWorkspaceCandidate]:
     rows = (
-        await session.execute(
-            text("SELECT * FROM resolve_active_sso_workspaces(:directory_id, :subject, :email)"),
-            {"directory_id": directory_id, "subject": subject, "email": email},
+        (
+            await session.execute(
+                text(
+                    "SELECT * FROM resolve_active_sso_workspaces(:directory_id, :subject, :email)"
+                ),
+                {"directory_id": directory_id, "subject": subject, "email": email},
+            )
         )
-    ).mappings().all()
+        .mappings()
+        .all()
+    )
     return [
         SSOWorkspaceCandidate(
             tenant_id=row["tenant_id"],
@@ -859,15 +885,19 @@ async def activate_sso(
             config.activated_by_user_id = identity.user.id
             config.activation_id = activation_id
             rows = (
-                await session.execute(
-                    select(User)
-                    .join(Membership, Membership.user_id == User.id)
-                    .where(
-                        Membership.tenant_id == tenant.tenant_id,
-                        Membership.status == MembershipStatus.ACTIVE,
+                (
+                    await session.execute(
+                        select(User)
+                        .join(Membership, Membership.user_id == User.id)
+                        .where(
+                            Membership.tenant_id == tenant.tenant_id,
+                            Membership.status == MembershipStatus.ACTIVE,
+                        )
                     )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for user in rows:
                 enqueue_email(
                     session,

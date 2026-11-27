@@ -13,11 +13,11 @@ import {
   Info,
   Lightbulb,
   LockKeyhole,
+  Paperclip,
   Pencil,
   Route,
   RotateCcw,
   Save,
-  ShieldCheck,
   Sparkles,
   Target,
   UserCircle2,
@@ -33,6 +33,7 @@ import { apiRequest } from "@/lib/api";
 import { useSession } from "@/lib/use-session";
 import { canContribute } from "@/lib/roles";
 import { GuidedTour, startTour, useTour } from "@/components/ui/guided-tour";
+import { IdeaAttachments } from "@/components/ideas/idea-attachments";
 import { submitIdeaTourSteps, SUBMIT_IDEA_TOUR_VERSION } from "./submit-idea-tour";
 import styles from "./submission.module.css";
 
@@ -67,14 +68,14 @@ type Catalog = {
   departments: Item[];
   categories: Item[];
   subcategories: Item[];
-  process_areas: Item[];
+  capex_subtypes?: Item[];
   approval_contract: ApprovalContract | null;
 };
 type IdeaRecord = { id: string; reference: string; status: string; draft_step: number };
 type EditableIdea = {
   id: string; reference: string; status: "draft" | "needs_correction"; updated_at: string; correction_reason: string | null; draft_step: number;
   idea_type: "kaizen" | "project"; project_category: string | null; project_subtype: string | null;
-  site_id: string | null; department_id: string | null; category_id: string | null; subcategory_id: string | null; process_area_id: string | null;
+  site_id: string | null; department_id: string | null; category_id: string | null; subcategory_id: string | null;
   title: string; problem_statement: string; business_case: string; current_state: string; baseline_uom: string; target_state: string; target_uom: string; target_completion_date: string | null;
   impacts: string[]; estimated_annual_saving: string | null; cost_avoidance: string | null; investment_required: string | null;
 };
@@ -86,7 +87,6 @@ type FormState = {
   department_id: string;
   category_id: string;
   subcategory_id: string;
-  process_area_id: string;
   title: string;
   problem_statement: string;
   business_case: string;
@@ -106,7 +106,7 @@ const emptyCatalog: Catalog = {
   departments: [],
   categories: [],
   subcategories: [],
-  process_areas: [],
+  capex_subtypes: [],
   approval_contract: null,
 };
 const initialForm: FormState = {
@@ -117,7 +117,6 @@ const initialForm: FormState = {
   department_id: "",
   category_id: "",
   subcategory_id: "",
-  process_area_id: "",
   title: "",
   problem_statement: "",
   business_case: "",
@@ -141,7 +140,8 @@ const impacts = [
 const projectSubtypes: Record<string, string[]> = {
   "Lean Six Sigma": ["DMAIC", "DMADV"],
   "Improvement Project": ["Operational", "Cross-functional"],
-  "Capex Project": ["Replacement", "Expansion", "Compliance"],
+  // Capex sub-categories come from the workspace register (Administration → CAPEX sub-categories).
+  "Capex Project": [],
 };
 const stepCopy = [
   { label: "Type & category", short: "Frame the opportunity" },
@@ -260,6 +260,10 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
     ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(Number(value) * Number(fxRate.rate))
     : null;
 
+  const subtypesFor = (projectCategory: string) => projectCategory === "Capex Project"
+    ? (catalog.capex_subtypes ?? []).map((item) => item.name)
+    : projectSubtypes[projectCategory] ?? [];
+
   const selectSubcategory = (id: string) => {
     const guidance = catalog.subcategories.find((item) => item.id === id)?.guidance;
     setFieldErrors((current) => ({ ...current, subcategory_id: false }));
@@ -279,7 +283,6 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
     department_id: form.department_id || null,
     category_id: form.category_id || null,
     subcategory_id: form.subcategory_id || null,
-    process_area_id: form.process_area_id || null,
     target_completion_date: form.target_completion_date || null,
     estimated_annual_saving: form.estimated_annual_saving || null,
     cost_avoidance: form.cost_avoidance || null,
@@ -310,6 +313,8 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
       setBusy("");
     }
   };
+
+  const ensureDraft = async () => draft?.id ?? (await saveDraft())?.id ?? null;
 
   const submit = async () => {
     setBusy("submit");
@@ -579,7 +584,7 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
                       onChange={(value) => update("project_subtype", value)}
                       invalid={Boolean(fieldErrors.project_subtype)}
                       disabled={!form.project_category}
-                      options={[{ value: "", label: form.project_category ? "Select a project subtype" : "Choose a category first", description: "Refine the project route" }, ...(projectSubtypes[form.project_category] ?? []).map((value) => ({ value, label: value }))]}
+                      options={[{ value: "", label: form.project_category ? "Select a project subtype" : "Choose a category first", description: "Refine the project route" }, ...subtypesFor(form.project_category).map((value) => ({ value, label: value }))]}
                     />
                   </div>
                 </div>
@@ -725,8 +730,8 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
               </div>
             </FormSection>
 
-            <FormSection icon={<ShieldCheck size={18} />} title="Evidence readiness" description="Attachments will be introduced with secure storage and malware scanning. For now, include the essential evidence or measurement basis in the narrative before submitting.">
-              <div className={styles.evidenceNote}><Info size={18} /><p><strong>Prepare useful supporting evidence</strong><span>Before the attachment capability is enabled, retain photographs, process maps, calculations, or baseline reports against the idea reference shown after saving.</span></p></div>
+            <FormSection icon={<Paperclip size={18} />} title="Supporting documents" description="Attach photographs, process maps, calculations or baseline reports that back up the case. Reviewers see each file's first page at a glance.">
+              <IdeaAttachments ideaId={draft?.id ?? null} ensureIdea={ensureDraft} editable />
             </FormSection>
           </section>
         ) : null}
@@ -778,6 +783,10 @@ export function IdeaSubmission({ resumeIdeaId }: { resumeIdeaId?: string }) {
                 <ReviewFact label="Indicative payback" value={payback === null ? "Not calculated" : `${payback.toFixed(1)} months`} />
               </div>
             </ReviewGroup>
+
+            {draft ? <ReviewGroup title="Supporting documents" description="Files reviewers will see with this idea." onEdit={() => goToStep(3)}>
+              <IdeaAttachments ideaId={draft.id} editable={false} />
+            </ReviewGroup> : null}
 
             </div>
             <ReviewGroup title="Approval workflow" description="The published contract that will be fixed to this idea at submission." tinted>
@@ -878,7 +887,6 @@ function toFormState(idea: EditableIdea): FormState {
     department_id: idea.department_id ?? "",
     category_id: idea.category_id ?? "",
     subcategory_id: idea.subcategory_id ?? "",
-    process_area_id: idea.process_area_id ?? "",
     title: idea.title,
     problem_statement: idea.problem_statement,
     business_case: idea.business_case,

@@ -1,0 +1,41 @@
+.toolbar { display: grid; gap: .75rem; border: 1px solid var(--line); border-radius: .5rem; margin-bottom: 1rem; padding: .75rem; background: var(--tp-surface); }
+
+/* Views: the headline counts, and one click to filter by them. Scroll sideways on phones. */
+.views { display: flex; gap: .4rem; overflow-x: auto; margin: -.15rem; padding: .15rem; scrollbar-width: thin; }
+.views button { display: inline-flex; min-height: 2.25rem; flex: 0 0 auto; cursor: pointer; align-items: center; gap: .45rem; border: 1px solid var(--line); border-radius: 999px; padding: .3rem .45rem .3rem .75rem; background: var(--paper); color: var(--ink); font: inherit; font-size: var(--tp-text-sm); font-weight: 700; white-space: nowrap; transition: border-color 140ms ease, background-color 140ms ease; }
+.views button:hover { border-color: var(--tp-line-strong); }
+.views button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.views button b { min-width: 1.6rem; border-radius: 999px; padding: .1rem .45rem; background: var(--panel); color: var(--muted); font-size: .75rem; font-weight: 800; text-align: center; }
+.views button[aria-pressed="true"] { border-color: var(--blue); background: var(--tp-blue-soft); color: var(--blue-deep); box-shadow: inset 0 0 0 1px var(--blue); }
+.views button[aria-pressed="true"] b { background: var(--blue); color: var(--on-accent); }
+.dot { width: .5rem; height: .5rem; flex: 0 0 auto; border-radius: 50%; background: var(--subtle); }
+.views [data-tone="info"] .dot { background: var(--blue); }
+.views [data-tone="success"] .dot { background: var(--tp-success); }
+.views [data-tone="warning"] .dot { background: var(--tp-warning); }
+.views [data-tone="danger"] .dot { background: var(--tp-danger); }
+
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.search { position: relative; display: flex; min-width: min(100%, 16rem); min-height: 2.5rem; flex: 1 1 20rem; align-items: center; gap: .5rem; border: 1px solid var(--tp-line-strong); border-radius: .35rem; padding: 0 .4rem 0 .7rem; background: var(--field); color: var(--muted); }
+.search:focus-within { border-color: var(--blue); outline: 2px solid var(--focus); outline-offset: 1px; }
+.search input { min-width: 0; flex: 1; border: 0; padding: .45rem 0; background: transparent; color: var(--ink); font: inherit; font-size: var(--tp-text-sm); outline: none; }
+.search input::-webkit-search-cancel-button { display: none; }
+.search button { display: grid; width: 1.75rem; height: 1.75rem; cursor: pointer; border: 0; border-radius: .25rem; background: transparent; color: var(--muted); place-items: center; }
+.search button:hover { background: var(--hover); color: var(--ink); }
+
+.filterToggle, .clear { display: inline-flex; min-height: 2.5rem; cursor: pointer; align-items: center; gap: .4rem; border-radius: .35rem; padding: .4rem .8rem; font: inherit; font-size: var(--tp-text-sm); font-weight: 740; }
+.filterToggle { border: 1px solid var(--tp-line-strong); background: var(--tp-surface); color: var(--ink); }
+.filterToggle:hover, .filterToggle[aria-expanded="true"] { background: var(--tp-blue-soft); color: var(--blue-deep); }
+.filterToggle b { border-radius: 999px; padding: .05rem .4rem; background: var(--blue); color: var(--on-accent); font-size: .75rem; }
+.clear { border: 1px solid transparent; background: transparent; color: var(--blue-deep); }
+.clear:hover { background: var(--hover); }
+.filterToggle:focus-visible, .clear:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.count { margin-left: auto; color: var(--muted); font-size: var(--tp-text-xs); font-weight: 700; white-space: nowrap; }
+
+.panel { display: grid; gap: .75rem; border-top: 1px solid var(--line); padding-top: .75rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.panel[hidden] { display: none; }
+
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) { .views button { transition: none; } }
+
+@media (min-width: 64rem) { .views { flex-wrap: wrap; overflow: visible; } }

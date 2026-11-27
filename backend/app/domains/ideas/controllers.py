@@ -13,6 +13,7 @@ from app.core.urls import preferences_link, tenant_frontend_url
 from app.domains.audit.controllers import record_audit_event
 from app.domains.communications.controllers import enqueue_email
 from app.domains.communications.schemas import EmailMessage
+from app.domains.configuration.capex import CAPEX_PROJECT_CATEGORY
 from app.domains.configuration.models import (
     ApproverGroup,
     ConfigurationItem,
@@ -222,6 +223,7 @@ async def _validate_catalog(
     }
     identifiers = [identifier for identifier in expected.values() if identifier]
     if not identifiers:
+        await _validate_capex_subtype(session, tenant_id, command)
         return
     records = list(
         (
@@ -255,6 +257,27 @@ async def _validate_catalog(
             raise IdeaValidationError("The selected department does not belong to that site.")
     if command.subcategory_id and by_id[command.subcategory_id].parent_id != command.category_id:
         raise IdeaValidationError("The selected subcategory does not belong to that category.")
+    await _validate_capex_subtype(session, tenant_id, command)
+
+
+async def _validate_capex_subtype(
+    session: AsyncSession, tenant_id: uuid.UUID, command: IdeaUpsertCommand
+) -> None:
+    """CAPEX sub-categories come from the workspace's own register."""
+    if command.idea_type != "project" or command.project_category != CAPEX_PROJECT_CATEGORY:
+        return
+    if not command.project_subtype:
+        return
+    exists = await session.scalar(
+        select(ConfigurationItem.id).where(
+            ConfigurationItem.tenant_id == tenant_id,
+            ConfigurationItem.kind == "capex_subtype",
+            ConfigurationItem.name == command.project_subtype,
+            ConfigurationItem.is_active.is_(True),
+        )
+    )
+    if exists is None:
+        raise IdeaValidationError("Select an active CAPEX sub-category.")
 
 
 def _apply(idea: Idea, command: IdeaUpsertCommand) -> None:
@@ -688,6 +711,7 @@ async def get_catalog(tenant_id: uuid.UUID, session: AsyncSession) -> IdeaSubmis
             "category": [],
             "subcategory": [],
             "process_area": [],
+            "capex_subtype": [],
         }
         items = await repository.get_catalog_items(session, tenant_id)
         department_ids = [item.id for item in items if item.kind == "department"]
@@ -774,6 +798,7 @@ async def get_catalog(tenant_id: uuid.UUID, session: AsyncSession) -> IdeaSubmis
             categories=grouped["category"],
             subcategories=grouped["subcategory"],
             process_areas=grouped["process_area"],
+            capex_subtypes=grouped["capex_subtype"],
             approval_contract=approval_contract,
         )
 
@@ -880,8 +905,12 @@ async def get_home_workspace(
         ).all()
         my_idea_ids = [idea.id for idea in ideas]
         join_requests = await pending_join_requests(session, tenant_id, idea_ids=my_idea_ids)
+        from app.domains.ideas.endorsements import pending_endorsement_requests
+
+        endorsement_requests = await pending_endorsement_requests(session, tenant_id, user_id)
         return HomeWorkspaceSummary(
             join_requests=join_requests,
+            endorsement_requests=[item.model_dump(mode="json") for item in endorsement_requests],
             ideas=[
                 HomeIdeaSummary(
                     id=idea.id,
@@ -1117,9 +1146,7 @@ async def complete_approval(
                 subject=f"Your idea {idea.reference} is approved",
                 template_data={
                     "recipient_name": submitter.display_name,
-                    "tenant_name": tenant_record.name
-                    if tenant_record
-                    else "your organisation",
+                    "tenant_name": tenant_record.name if tenant_record else "your organisation",
                     "idea_reference": idea.reference,
                     "idea_title": idea.title,
                     "action_url": tenant_frontend_url(
@@ -1129,9 +1156,7 @@ async def complete_approval(
                         query={"section": "project-charter"},
                     ),
                     "action_label": "Complete project charter",
-                    **preferences_link(
-                        settings, tenant_record.slug if tenant_record else ""
-                    ),
+                    **preferences_link(settings, tenant_record.slug if tenant_record else ""),
                 },
             ),
             settings,
@@ -1189,7 +1214,12 @@ async def decide_approval_stage(
                 step_complete
                 and version is not None
                 and await activate_next_step(
-                    session, idea, version, stage.round_number, after_order=stage.stage_order, now=now
+                    session,
+                    idea,
+                    version,
+                    stage.round_number,
+                    after_order=stage.stage_order,
+                    now=now,
                 )
             )
             if step_complete and not more_steps:

@@ -81,6 +81,11 @@ jobs:
           CFG_SSO_RECOVERY_MINUTES: ${{ secrets.SSO_RECOVERY_MINUTES }}
           CFG_FX_API_BASE_URL: ${{ secrets.FX_API_BASE_URL }}
           CFG_FX_CACHE_MINUTES: ${{ secrets.FX_CACHE_MINUTES }}
+          CFG_S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          CFG_S3_REGION: ${{ secrets.S3_REGION }}
+          CFG_S3_KMS_KEY_ARN: ${{ secrets.S3_KMS_KEY_ARN }}
+          CFG_S3_PREFIX: ${{ secrets.S3_PREFIX }}
+          CFG_S3_REQUIRE_MALWARE_SCAN: ${{ secrets.S3_REQUIRE_MALWARE_SCAN }}
           CFG_NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           CFG_NEXT_PUBLIC_CSRF_COOKIE_NAME: ${{ secrets.NEXT_PUBLIC_CSRF_COOKIE_NAME }}
         run: |

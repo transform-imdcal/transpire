@@ -26,6 +26,7 @@ class DirectoryEmployee(UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin, B
         UniqueConstraint("tenant_id", "employee_id", name="uq_directory_employees_tenant_employee"),
         Index("ix_directory_employees_tenant_email", "tenant_id", "email"),
         Index("ix_directory_employees_tenant_status", "tenant_id", "status"),
+        Index("ix_directory_employees_tenant_review", "tenant_id", "access_review"),
     )
 
     employee_id: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -49,6 +50,14 @@ class DirectoryEmployee(UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin, B
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Nobody from the HR file is invited until an administrator verifies them.
+    # pending: awaiting verification. approved: verified and invited (or already had an
+    # account). excluded: an administrator decided not to give this employee access.
+    access_review: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
 
 class DirectoryRun(UUIDPrimaryKeyMixin, TenantOwnedMixin, Base):

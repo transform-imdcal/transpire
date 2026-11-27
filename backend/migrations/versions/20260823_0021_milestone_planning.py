@@ -46,9 +46,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "fk_project_milestones_owner_user", "project_milestones", type_="foreignkey"
-    )
+    op.drop_constraint("fk_project_milestones_owner_user", "project_milestones", type_="foreignkey")
     op.drop_column("project_milestones", "dependency_ids")
     op.drop_column("project_milestones", "evidence")
     op.drop_column("project_milestones", "owner_user_id")

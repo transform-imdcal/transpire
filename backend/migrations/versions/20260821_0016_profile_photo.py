@@ -19,7 +19,9 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column("users", sa.Column("avatar_data", sa.LargeBinary(), nullable=True))
     op.add_column("users", sa.Column("avatar_content_type", sa.String(length=40), nullable=True))
-    op.add_column("users", sa.Column("avatar_updated_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "users", sa.Column("avatar_updated_at", sa.DateTime(timezone=True), nullable=True)
+    )
 
 
 def downgrade() -> None:

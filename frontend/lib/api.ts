@@ -44,16 +44,14 @@ export type SessionIdentity = {
 
 export async function apiRequest(path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
-  if (init?.body && !headers.has("Content-Type")) {
+  const binaryBody = typeof Blob !== "undefined" && (init?.body instanceof Blob || init?.body instanceof FormData);
+  if (init?.body && !binaryBody && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   const method = (init?.method ?? "GET").toUpperCase();
-  if (typeof document !== "undefined" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
-    const csrfToken = document.cookie
-      .split("; ")
-      .find((entry) => entry.startsWith(`${CSRF_COOKIE_NAME}=`))
-      ?.split("=")[1];
-    if (csrfToken) headers.set("X-CSRF-Token", decodeURIComponent(csrfToken));
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    const token = csrfToken();
+    if (token) headers.set("X-CSRF-Token", token);
   }
 
   return fetch(`${apiBaseUrl()}${tenantApiPath(path)}`, {
@@ -61,6 +59,16 @@ export async function apiRequest(path: string, init?: RequestInit) {
     credentials: "include",
     headers,
   });
+}
+
+/** The CSRF token for state-changing requests made outside apiRequest (e.g. upload progress via XHR). */
+export function csrfToken() {
+  if (typeof document === "undefined") return "";
+  const value = document.cookie
+    .split("; ")
+    .find((entry) => entry.startsWith(`${CSRF_COOKIE_NAME}=`))
+    ?.split("=")[1];
+  return value ? decodeURIComponent(value) : "";
 }
 
 export function apiUrl(path: string) {

@@ -48,9 +48,7 @@ def upgrade() -> None:
         sa.Column("closure_notified_at", sa.DateTime(timezone=True), nullable=True),
     )
     # Work already in flight was assigned before approval emails existed: never back-fill.
-    op.execute(
-        "UPDATE idea_approval_stages SET notified_at = now() WHERE status = 'pending'"
-    )
+    op.execute("UPDATE idea_approval_stages SET notified_at = now() WHERE status = 'pending'")
     op.execute(
         "UPDATE idea_approval_stages SET closure_notified_at = now() WHERE status = 'reassigned'"
     )
@@ -63,9 +61,14 @@ def upgrade() -> None:
         sa.Column("round_number", sa.Integer(), nullable=False),
         sa.Column("stage_order", sa.Integer(), nullable=False),
         sa.Column("stage_name", sa.String(160), nullable=False),
-        sa.Column("user_ids", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "user_ids", postgresql.JSONB(), nullable=False, server_default=sa.text("'[]'::jsonb")
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["idea_id"], ["ideas.id"], ondelete="CASCADE"),
@@ -85,10 +88,16 @@ def upgrade() -> None:
         sa.Column("parent_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("body", sa.Text(), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
         sa.Column(
-            "updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
         ),
         sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["idea_id"], ["ideas.id"], ondelete="CASCADE"),

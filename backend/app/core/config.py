@@ -156,6 +156,38 @@ class Settings(BaseSettings):
         default=300,
         validation_alias="OUTBOX_LEASE_SECONDS",
     )
+    # File storage. "s3" uploads go straight from the browser to a private bucket through
+    # short-lived signed POST forms; the server reaches the bucket with its EC2 instance role
+    # (IMDSv2), never with access keys. "local" keeps files on disk for development only.
+    storage_backend: str = Field(default="local", validation_alias="STORAGE_BACKEND")
+    storage_bucket: str = Field(default="", validation_alias="S3_BUCKET")
+    storage_region: str = Field(default="ap-south-1", validation_alias="S3_REGION")
+    storage_kms_key_id: str = Field(default="", validation_alias="S3_KMS_KEY_ARN")
+    # Optional folder in front of every key, e.g. "qa". The bucket's IAM policy and lifecycle
+    # rules cover "tenants/*", so leave this empty unless IT has widened them.
+    storage_prefix: str = Field(default="", validation_alias="S3_PREFIX")
+    # Only for S3-compatible test servers (moto, MinIO); empty means real AWS.
+    storage_endpoint_url: str = Field(default="", validation_alias="S3_ENDPOINT_URL")
+    # When true, a file can only be opened once GuardDuty has tagged it
+    # GuardDutyMalwareScanStatus=NO_THREATS_FOUND. Turn on once Malware Protection is enabled.
+    storage_require_malware_scan: bool = Field(
+        default=False, validation_alias="S3_REQUIRE_MALWARE_SCAN"
+    )
+    storage_local_dir: str = Field(
+        default=str(REPO_ROOT / "backend" / "file" / "storage"),
+        validation_alias="STORAGE_LOCAL_DIR",
+    )
+    storage_url_seconds: int = Field(
+        default=300, ge=30, le=3600, validation_alias="STORAGE_URL_SECONDS"
+    )
+    # Platform ceilings. A Workspace Admin can tighten these, never raise them. The bucket
+    # was agreed with IT for files up to 5 MB.
+    attachment_max_file_mb: int = Field(
+        default=5, ge=1, le=100, validation_alias="ATTACHMENT_MAX_FILE_MB"
+    )
+    attachment_max_files: int = Field(
+        default=10, ge=1, le=50, validation_alias="ATTACHMENT_MAX_FILES"
+    )
     development_tenant_slug: str = Field(
         default="transpire-local",
         validation_alias="DEV_TENANT_SLUG",
@@ -195,6 +227,8 @@ class Settings(BaseSettings):
             raise ValueError("OUTBOX_ENCRYPTION_KEY is required in production")
         if "*" in self.trusted_hosts:
             raise ValueError("ALLOWED_HOSTS cannot contain * in production")
+        if self.storage_backend.casefold() == "local":
+            raise ValueError("STORAGE_BACKEND=local keeps files inside the container; use s3")
         return self
 
 

@@ -79,3 +79,4 @@
 .authChoice label[data-checked="true"] { border-color: var(--blue); background: var(--tp-blue-soft); }
 .authChoice input { accent-color: var(--blue); }
 .keyInput { width: 100%; min-height: 8rem; resize: vertical; border: 1px solid var(--line); border-radius: .25rem; padding: .6rem .75rem; background: var(--tp-surface); color: var(--ink); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--tp-text-xs); }
+.stats dd .inlineLink { display: block; margin-top: .25rem; font-size: var(--tp-text-xs); }

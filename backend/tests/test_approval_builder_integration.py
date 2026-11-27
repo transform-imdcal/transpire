@@ -124,12 +124,12 @@ async def test_hr_directory_drives_dynamic_approvals() -> None:
         owner_h = await _join(owner, tenant_id, prefix, owner_email)
         settings_saved = await owner.put(
             f"{prefix}/admin/directory/settings",
-            json={"invite_new_employees": True, "allowed_email_domains": ["example.com"]},
+            json={"allowed_email_domains": ["example.com"]},
             headers=owner_h,
         )
         assert settings_saved.status_code == 200, settings_saved.text
 
-        # Preview changes nothing; apply loads everyone and invites them.
+        # Preview changes nothing; apply loads everyone, awaiting verification.
         first = hr_file(suffix, staff, "Bavla")
         upload = f"{prefix}/admin/directory/upload"
         preview = await owner.post(
@@ -149,7 +149,35 @@ async def test_hr_directory_drives_dynamic_approvals() -> None:
             headers=owner_h,
         )
         assert applied.json()["status"] == "applied", applied.text
-        assert applied.json()["summary"]["invited"] == 5
+        # Nobody is invited or active until an administrator verifies them.
+        assert applied.json()["summary"]["awaiting_verification"] == 5
+        assert applied.json()["summary"].get("invited") is None
+        assert not any(
+            m["email"] in email.values()
+            for m in (await owner.get(f"{prefix}/admin/members")).json()
+        )
+        awaiting = (
+            await owner.get(
+                f"{prefix}/admin/directory/employees",
+                params={"review": "pending", "limit": 100},
+            )
+        ).json()
+        assert len(awaiting) == 5 and all(not e["has_account"] for e in awaiting)
+        first_id = awaiting[0]["employee_id"]
+        excluded = await owner.post(
+            f"{prefix}/admin/directory/employees/exclude",
+            json={"employee_ids": [first_id]},
+            headers=owner_h,
+        )
+        assert excluded.json() == {"excluded": 1}
+        verified = await owner.post(
+            f"{prefix}/admin/directory/employees/verify",
+            json={"employee_ids": [e["employee_id"] for e in awaiting]},
+            headers=owner_h,
+        )
+        assert verified.status_code == 200, verified.text
+        assert len(verified.json()["invited"]) == 5
+        assert (await owner.get(f"{prefix}/admin/directory")).json()["employees_awaiting"] == 0
         again = await owner.post(
             upload,
             params={"file_name": "day1.csv", "mode": "apply"},

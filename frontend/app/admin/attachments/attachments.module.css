@@ -1,0 +1,9 @@
+.limits { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.limits label { display: grid; gap: .35rem; border: 1px solid var(--line); border-radius: .4rem; padding: .9rem 1rem; background: var(--tp-surface); }
+.limits span { font-size: var(--tp-text-md); font-weight: 780; }
+.limits small { color: var(--muted); font-size: var(--tp-text-xs); line-height: 1.45; }
+.limits input { width: 8rem; min-height: 2.5rem; border: 1px solid var(--tp-line-strong); border-radius: .3rem; padding: .4rem .6rem; background: var(--field); color: var(--ink); font: inherit; font-size: var(--tp-text-md); }
+.limits input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.warning { display: flex; align-items: flex-start; gap: .65rem; border: 1px solid var(--tp-warning-line); border-radius: .4rem; margin-bottom: 1rem; padding: .85rem 1rem; background: var(--tp-warning-soft); color: var(--tp-warning); }
+.warning svg { flex: 0 0 auto; margin-top: .1rem; }
+.warning p { display: grid; gap: .15rem; margin: 0; font-size: var(--tp-text-sm); line-height: 1.45; }

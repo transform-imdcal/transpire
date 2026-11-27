@@ -1,8 +1,8 @@
-import { Building2, Eye, FileClock, FolderSync, GitBranch, KeyRound, Layers3, MapPin, Network, Users, UsersRound, Workflow, type LucideIcon } from "lucide-react";
+import { Building2, Eye, Paperclip, FileClock, FolderSync, GitBranch, KeyRound, Layers3, MapPin, Network, Users, UsersRound, Factory, type LucideIcon } from "lucide-react";
 import type { SessionIdentity } from "@/lib/api";
 import { isWorkspaceAdmin, isWorkspaceOwner } from "@/lib/roles";
 
-export type AdminRoute = "sites" | "departments" | "categories" | "process_areas" | "workflow" | "approver_groups" | "idea_bank_policy" | "people" | "hr_directory" | "sign_in" | "audit_log" | "tenants";
+export type AdminRoute = "sites" | "departments" | "categories" | "capex_subtypes" | "workflow" | "approver_groups" | "idea_bank_policy" | "attachments" | "people" | "hr_directory" | "sign_in" | "audit_log" | "tenants";
 
 /** `ownerOnly` pages are limited to Workspace Owners (sign-in and security). */
 export type AdminPage = { route: AdminRoute; href: string; label: string; Icon: LucideIcon; ownerOnly?: boolean };
@@ -16,7 +16,8 @@ export const adminGroups: AdminGroup[] = [
   ] },
   { label: "Idea setup", pages: [
     { route: "categories", href: "/admin/categories", label: "Categories", Icon: Layers3 },
-    { route: "process_areas", href: "/admin/process-areas", label: "Process areas", Icon: Workflow },
+    { route: "capex_subtypes", href: "/admin/capex-sub-categories", label: "CAPEX sub-categories", Icon: Factory },
+    { route: "attachments", href: "/admin/attachments", label: "Attachments", Icon: Paperclip },
   ] },
   { label: "Governance", pages: [
     { route: "workflow", href: "/admin/approval-workflow", label: "Approval workflow", Icon: GitBranch },

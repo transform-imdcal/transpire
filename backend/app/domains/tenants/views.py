@@ -77,11 +77,15 @@ async def create_sso_recovery(
 ) -> SSORecoveryResult:
     async with session.begin():
         row = (
-            await session.execute(
-                text("SELECT * FROM resolve_tenant_by_id(:tenant_id)"),
-                {"tenant_id": tenant_id},
+            (
+                await session.execute(
+                    text("SELECT * FROM resolve_tenant_by_id(:tenant_id)"),
+                    {"tenant_id": tenant_id},
+                )
             )
-        ).mappings().one_or_none()
+            .mappings()
+            .one_or_none()
+        )
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found.")
     target = ResolvedTenant(

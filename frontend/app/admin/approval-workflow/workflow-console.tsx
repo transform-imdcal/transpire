@@ -14,6 +14,7 @@ import { type BuilderStage, type DirectoryEmployee, type GroupOption, type Previ
 import styles from "./builder.module.css";
 import { StepInspector } from "./step-inspector";
 import { WorkflowCanvas } from "./workflow-canvas";
+import { ZoomFrame } from "./zoom-frame";
 
 type Confirmation = { title: string; description: string; confirmLabel: string; run: () => Promise<void> };
 
@@ -180,9 +181,9 @@ export function WorkflowConsole() {
         {testOpen ? <TestPanel busy={busy === "preview"} preview={preview} fresh={Boolean(previewFresh)} disabled={problems.length > 0} onRun={(employee) => void runPreview(employee)} onClear={() => setPreview(null)} /> : null}
 
         <div className={styles.workspace}>
-          <div className={styles.canvasWrap}>
+          <ZoomFrame className={styles.canvasWrap}>
             <WorkflowCanvas stages={stages} groups={groups} selected={selected} preview={previewFresh ? preview.steps : null} readOnly={false} onSelect={setSelected} onInsert={insert} />
-          </div>
+          </ZoomFrame>
           <aside className={styles.inspectorWrap}>
             {selectedIndex >= 0
               ? <StepInspector stage={stages[selectedIndex]} index={selectedIndex} count={stages.length} groups={groups} readOnly={false} onChange={updateStage} onMove={move} onRemove={remove} />

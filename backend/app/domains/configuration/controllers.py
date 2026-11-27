@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.tenant_context import apply_tenant_to_transaction
 from app.domains.audit.controllers import record_audit_event
+from app.domains.configuration.capex import DEFAULT_CAPEX_SUBTYPES
 from app.domains.configuration.models import (
     ApproverGroup,
     ConfigurationItem,
@@ -124,14 +125,15 @@ def create_default_master_data(session: AsyncSession, tenant_id: uuid.UUID) -> N
                     },
                 )
             )
-    for area_index, area in enumerate(URS_TEMPLATE_CATALOG["processAreas"]):
+    # Process areas are no longer offered; new workspaces get CAPEX sub-categories instead.
+    for capex_index, capex in enumerate(DEFAULT_CAPEX_SUBTYPES):
         session.add(
             ConfigurationItem(
                 tenant_id=tenant_id,
-                kind="process_area",
-                code=_code(str(area)),
-                name=str(area),
-                sort_order=area_index,
+                kind="capex_subtype",
+                code=_code(capex),
+                name=capex,
+                sort_order=capex_index,
                 guidance={"source": "URS"},
             )
         )

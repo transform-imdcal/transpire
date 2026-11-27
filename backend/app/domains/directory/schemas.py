@@ -7,10 +7,8 @@ from pydantic import BaseModel, Field, field_validator
 class DirectorySettings(BaseModel):
     """Per-workspace HR directory behaviour, stored in tenant settings."""
 
-    # Approvers (anyone listed as a reporting manager or HoD) are always invited, because
-    # workflows depend on them. Inviting every other employee is opt-in, so a first load
-    # never emails the whole company by accident.
-    invite_new_employees: bool = False
+    # Nobody is invited by the sync itself: an administrator verifies imported employees
+    # first (People or HR directory), and only that sends invitations.
     # Empty means any domain. Otherwise only these company domains get accounts.
     allowed_email_domains: list[str] = Field(default_factory=list, max_length=20)
     # Block a file when more than this share of active employees disappears at once.
@@ -35,6 +33,7 @@ class DirectoryOverview(BaseModel):
     employees_missing: int
     employees_left: int
     employees_with_account: int
+    employees_awaiting: int
     last_applied_at: datetime | None
 
 
@@ -61,6 +60,31 @@ class DirectoryEmployeeSummary(BaseModel):
     hod_name: str | None
     status: str
     has_account: bool
+    access_review: str
+    # Whether anyone reports to this employee (reporting manager or HoD), so approvals
+    # depend on them having an account.
+    is_approver: bool = False
+
+
+class VerifyEmployeesCommand(BaseModel):
+    employee_ids: list[str] = Field(min_length=1, max_length=500)
+    role_key: str = Field(default="idea_submitter", pattern="^(viewer|idea_submitter)$")
+
+
+class ExcludeEmployeesCommand(BaseModel):
+    employee_ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class VerifyOutcome(BaseModel):
+    employee_id: str
+    name: str
+    reason: str | None = None
+
+
+class VerifyEmployeesResult(BaseModel):
+    invited: list[VerifyOutcome]
+    linked: list[VerifyOutcome]
+    skipped: list[VerifyOutcome]
 
 
 class SftpSourceView(BaseModel):

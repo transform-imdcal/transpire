@@ -110,8 +110,8 @@ export function CharterEditor({ projectId }: { projectId: string }) {
 
   if (loading || !session) return <main className={styles.loading}>Opening charter</main>;
   if (failure || !workspace || !draft) {
-    return <AdminShell session={session} active="projects" title={failure ? "Charter unavailable" : "Loading charter"}>
-      {failure ? <div className={styles.unavailable}><p>{failure}</p><Link href="/projects"><ArrowLeft size={16} aria-hidden="true" />Back to Projects</Link></div> : <div className={styles.skeleton} aria-label="Loading charter"><span /><span /><span /></div>}
+    return <AdminShell session={session} active="charters" title={failure ? "Charter unavailable" : "Loading charter"}>
+      {failure ? <div className={styles.unavailable}><p>{failure}</p><Link href="/charters"><ArrowLeft size={16} aria-hidden="true" />Back to Charters</Link></div> : <div className={styles.skeleton} aria-label="Loading charter"><span /><span /><span /></div>}
     </AdminShell>;
   }
 
@@ -141,12 +141,12 @@ export function CharterEditor({ projectId }: { projectId: string }) {
 
   return <AdminShell
     session={session}
-    active="projects"
+    active="charters"
     eyebrow={`${workspace.project_reference} · ${isKaizen ? "Kaizen" : "Project"} charter`}
     title={idea.title}
     actions={<ProjectStatusPill status={workspace.project_status} />}
   >
-    <div className={styles.back}><Link href="/projects"><ArrowLeft size={16} aria-hidden="true" />Back to Projects</Link><Link href={`/ideas/${idea.id}/summary`}>View the approved idea</Link></div>
+    <div className={styles.back}><Link href="/charters"><ArrowLeft size={16} aria-hidden="true" />Back to Charters</Link><Link href={`/ideas/${idea.id}/summary`}>View the approved idea</Link></div>
     <div className={styles.notices}>
       {notice ? <DismissibleNotice onDismiss={() => setNotice("")}>{notice}</DismissibleNotice> : null}
       {error ? <DismissibleNotice tone="error" onDismiss={() => setError("")}>{error}</DismissibleNotice> : null}

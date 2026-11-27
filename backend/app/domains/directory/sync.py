@@ -3,8 +3,11 @@
 Idempotency works at three levels:
 - file: a SHA-256 of the file; a file already applied is recorded as a duplicate and skipped.
 - row: each employee's normalised fields are hashed; unchanged rows cause no writes.
-- effect: invitations, deactivations and approval re-routing are driven by state, so
-  re-running the same file (for example after a crash) changes nothing further.
+- effect: deactivations and approval re-routing are driven by state, so re-running the
+  same file (for example after a crash) changes nothing further.
+
+The sync never invites anyone: new employees wait as "pending" until an administrator
+verifies them (``verify_employees``), which is what queues their invitations.
 
 Guards against the classic HR-sync failures: a truncated file never deactivates people
 (large drops are blocked unless forced), an employee must be absent from two consecutive
@@ -33,7 +36,6 @@ from app.domains.directory.schemas import DirectoryRunSummary, DirectorySettings
 from app.domains.ideas.approval_notifications import dispatch_approval_notifications
 from app.domains.ideas.approval_routing import activate_next_step, reroute_pending
 from app.domains.ideas.models import Idea, IdeaApprovalStage, IdeaStatus
-from app.domains.identity.access import CONTRIBUTOR
 from app.domains.identity.models import InvitationToken, Membership, MembershipStatus, User
 from app.domains.identity.repositories import SQLAlchemyIdentityRepository
 from app.domains.identity.schemas import SessionIdentity
@@ -41,7 +43,7 @@ from app.domains.tenants.models import Tenant
 from app.domains.tenants.repositories import SQLAlchemyTenantRepository
 
 LEAVE_AFTER_MISSING_RUNS = 2
-MAX_INVITES_PER_RUN = 500
+MAX_VERIFY_PER_REQUEST = 500
 REPORT_LIST_LIMIT = 200
 SETTLE_SECONDS = 60
 
@@ -243,8 +245,6 @@ async def run_directory_sync(
     force: bool = False,
     file_mtime: float | None = None,
 ) -> DirectoryRunSummary:
-    from app.domains.tenants.controllers import _queue_invitation
-
     now = datetime.now(UTC)
     sha = hashlib.sha256(content).hexdigest()
     async with session.begin():
@@ -447,6 +447,9 @@ async def run_directory_sync(
         await session.flush()
 
         # Accounts ---------------------------------------------------------------------------
+        # The sync never invites anyone. Employees who already have an account are linked
+        # to it; everyone else waits as "pending" until an administrator verifies them
+        # (People, or the HR directory page), which is what sends the invitation.
         directory = {
             record_.employee_id: record_
             for record_ in (
@@ -456,68 +459,34 @@ async def run_directory_sync(
             ).all()
         }
         members = await _members_by_email(session, tenant_id)
+        returning_ids = {row.employee_id for row in plan.returning}
         for record_ in directory.values():
             if record_.email and record_.user_id is None and record_.email in members:
                 membership, user = members[record_.email]
                 record_.user_id = user.id
-            if record_.user_id is not None:
-                for membership, user in members.values():
-                    if (
-                        user.id == record_.user_id
-                        and membership.employee_number != record_.employee_id
-                    ):
-                        membership.employee_number = record_.employee_id
+            if record_.user_id is None:
+                continue
+            match = next(((m, u) for m, u in members.values() if u.id == record_.user_id), None)
+            if match is None:
+                continue
+            membership, _ = match
+            if membership.employee_number != record_.employee_id:
+                membership.employee_number = record_.employee_id
+            if membership.status != MembershipStatus.INACTIVE:
+                if record_.access_review != "approved":
+                    record_.access_review = "approved"
+                    record_.reviewed_at = now
+            elif (
+                record_.employee_id in returning_ids and membership.provisioned_by == "hr_directory"
+            ):
+                # Back in the HR file after their access was removed: verify again.
+                record_.access_review = "pending"
 
-        approver_ids = {
-            value
-            for record_ in directory.values()
-            if record_.status == "active"
-            for value in (record_.manager_employee_id, record_.hod_employee_id)
-            if value
-        }
-        role = await tenant_repository.get_role(session, tenant_id, CONTRIBUTOR)
-        invited: list[dict[str, str]] = []
-        deferred = 0
-        for record_ in sorted(directory.values(), key=lambda item: item.employee_id):
-            if record_.status != "active" or not record_.email or role is None:
-                continue
-            existing_member = members.get(record_.email)
-            reinvite = (
-                existing_member is not None
-                and existing_member[0].status == MembershipStatus.INACTIVE
-                and existing_member[0].provisioned_by == "hr_directory"
-            )
-            wanted = options.invite_new_employees or record_.employee_id in approver_ids
-            if not wanted or (existing_member is not None and not reinvite):
-                continue
-            if len(invited) >= MAX_INVITES_PER_RUN:
-                deferred += 1
-                continue
-            await _queue_invitation(
-                session,
-                tenant_id=tenant_id,
-                tenant_name=tenant.name,
-                email=record_.email,
-                display_name=record_.display_name,
-                inviter=actor,
-                role=role,
-                settings=settings,
-                provisioned_by="hr_directory",
-            )
-            invited.append(
-                {
-                    "employee_id": record_.employee_id,
-                    "name": record_.display_name,
-                    "reason": "approver" if record_.employee_id in approver_ids else "employee",
-                }
-            )
-        if invited:
-            members = await _members_by_email(session, tenant_id)
-            for record_ in directory.values():
-                if record_.email and record_.user_id is None and record_.email in members:
-                    membership, user = members[record_.email]
-                    record_.user_id = user.id
-                    membership.employee_number = record_.employee_id
+        awaiting = [
+            record_
+            for record_ in sorted(directory.values(), key=lambda item: item.display_name)
+            if record_.status == "active" and record_.access_review == "pending"
+        ]
 
         deactivated: list[dict[str, str]] = []
         review: list[dict[str, str]] = []
@@ -554,10 +523,16 @@ async def run_directory_sync(
 
         reroutes = await reroute_open_approvals(session, tenant_id, settings, now)
 
+        approver_ids = {
+            value
+            for record_ in directory.values()
+            if record_.status == "active"
+            for value in (record_.manager_employee_id, record_.hod_employee_id)
+            if value
+        }
         summary.update(
             {
-                "invited": len(invited),
-                "invites_deferred": deferred,
+                "awaiting_verification": len(awaiting),
                 "deactivated": len(deactivated),
                 "needs_review": len(review) + len(email_changes),
                 "rerouted": len(reroutes),
@@ -565,7 +540,14 @@ async def run_directory_sync(
         )
         report.update(
             {
-                "invited": invited[:REPORT_LIST_LIMIT],
+                "awaiting": [
+                    {
+                        "employee_id": record_.employee_id,
+                        "name": record_.display_name,
+                        "reason": "approver" if record_.employee_id in approver_ids else "employee",
+                    }
+                    for record_ in awaiting[:REPORT_LIST_LIMIT]
+                ],
                 "deactivated": deactivated[:REPORT_LIST_LIMIT],
                 "review": review[:REPORT_LIST_LIMIT],
                 "email_changes": email_changes[:REPORT_LIST_LIMIT],
@@ -588,7 +570,7 @@ async def run_directory_sync(
             summary=(
                 f"HR directory updated from {file_name}: {len(plan.new)} new, "
                 f"{len(plan.changed)} changed, {len(plan.leaving)} left, "
-                f"{len(invited)} invited, {len(deactivated)} deactivated."
+                f"{len(awaiting)} awaiting verification, {len(deactivated)} deactivated."
             ),
             details={key: value for key, value in summary.items() if key != "file_mtime"},
         )

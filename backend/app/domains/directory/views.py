@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from app.domains.directory.controllers import (
+    exclude_employees,
     get_overview,
     list_runs,
     search_employees,
     update_settings,
+    verify_employees,
 )
 from app.domains.directory.parser import MAX_FILE_BYTES
 from app.domains.directory.schemas import (
@@ -14,10 +16,13 @@ from app.domains.directory.schemas import (
     DirectoryOverview,
     DirectoryRunSummary,
     DirectorySettings,
+    ExcludeEmployeesCommand,
     SftpActionResult,
     SftpSourceCommand,
     SftpSourceView,
     TrustHostKeyCommand,
+    VerifyEmployeesCommand,
+    VerifyEmployeesResult,
 )
 from app.domains.directory.sftp_controllers import (
     SftpNotConfiguredError,
@@ -73,8 +78,45 @@ async def get_directory_employees(
     tenant: TenantDependency,
     session: SessionDependency,
     query: Annotated[str, Query(max_length=120)] = "",
+    review: Annotated[str | None, Query(pattern="^(pending|approved|excluded)$")] = None,
+    limit: Annotated[int, Query(ge=1, le=5000)] = 50,
 ) -> list[DirectoryEmployeeSummary]:
-    return await search_employees(tenant.tenant_id, query, session)
+    return await search_employees(tenant.tenant_id, query, session, limit=limit, review=review)
+
+
+@router.post("/employees/verify", response_model=VerifyEmployeesResult)
+async def post_verify_employees(
+    command: VerifyEmployeesCommand,
+    identity: TenantAdminIdentity,
+    tenant: TenantDependency,
+    settings: SettingsDependency,
+    session: SessionDependency,
+) -> VerifyEmployeesResult:
+    """Verify imported employees and send their invitations."""
+    return await verify_employees(
+        tenant_id=tenant.tenant_id,
+        employee_ids=command.employee_ids,
+        role_key=command.role_key,
+        actor=identity,
+        settings=settings,
+        session=session,
+    )
+
+
+@router.post("/employees/exclude", response_model=dict[str, int])
+async def post_exclude_employees(
+    command: ExcludeEmployeesCommand,
+    identity: TenantAdminIdentity,
+    tenant: TenantDependency,
+    session: SessionDependency,
+) -> dict[str, int]:
+    excluded = await exclude_employees(
+        tenant_id=tenant.tenant_id,
+        employee_ids=command.employee_ids,
+        actor=identity,
+        session=session,
+    )
+    return {"excluded": excluded}
 
 
 @router.post("/upload", response_model=DirectoryRunSummary)

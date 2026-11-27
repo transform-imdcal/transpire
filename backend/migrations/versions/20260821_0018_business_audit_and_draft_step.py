@@ -48,9 +48,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_audit_events_tenant_id", "audit_events", ["tenant_id"])
-    op.create_index(
-        "ix_audit_events_tenant_created", "audit_events", ["tenant_id", "created_at"]
-    )
+    op.create_index("ix_audit_events_tenant_created", "audit_events", ["tenant_id", "created_at"])
     op.create_index(
         "ix_audit_events_tenant_actor",
         "audit_events",

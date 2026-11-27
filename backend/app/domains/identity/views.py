@@ -67,11 +67,7 @@ def _set_session_cookies(
     issued: IssuedSession,
     settings: Settings,
 ) -> None:
-    max_age = (
-        settings.remembered_session_days * 24 * 60 * 60
-        if issued.persistent
-        else None
-    )
+    max_age = settings.remembered_session_days * 24 * 60 * 60 if issued.persistent else None
     response.set_cookie(
         key=settings.session_cookie_name,
         value=issued.token,
@@ -111,9 +107,7 @@ async def create_session(
             detail="This organisation requires Microsoft SSO.",
         )
     if command.preferred_tenant_slug is None and isinstance(route_tenant, ResolvedTenant):
-        command = command.model_copy(
-            update={"preferred_tenant_slug": route_tenant.slug}
-        )
+        command = command.model_copy(update={"preferred_tenant_slug": route_tenant.slug})
     try:
         outcome = await central_sign_in(
             command,

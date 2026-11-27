@@ -290,3 +290,31 @@ class IdeaJoinRequest(UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin, Bas
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class IdeaEndorsement(UUIDPrimaryKeyMixin, TenantOwnedMixin, TimestampMixin, Base):
+    """A colleague asked by the idea's owner to back it. Support only: never part of approval."""
+
+    __tablename__ = "idea_endorsements"
+    __table_args__ = (
+        UniqueConstraint("idea_id", "endorser_user_id", name="uq_idea_endorsements_endorser"),
+        CheckConstraint(
+            "status IN ('requested', 'endorsed', 'declined')", name="ck_idea_endorsements_status"
+        ),
+        Index("ix_idea_endorsements_tenant_idea", "tenant_id", "idea_id", "status"),
+        Index("ix_idea_endorsements_tenant_endorser", "tenant_id", "endorser_user_id", "status"),
+    )
+
+    idea_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("ideas.id", ondelete="CASCADE"), nullable=False
+    )
+    endorser_user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="requested")
+    message: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    comment: Mapped[str] = mapped_column(String(600), nullable=False, default="")
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

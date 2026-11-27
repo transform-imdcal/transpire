@@ -77,11 +77,15 @@ class SQLAlchemyIdentityRepository:
         self, session: AsyncSession, email: str
     ) -> GlobalSignInUser | None:
         row = (
-            await session.execute(
-                text("SELECT * FROM lookup_global_sign_in_user(:email)"),
-                {"email": email},
+            (
+                await session.execute(
+                    text("SELECT * FROM lookup_global_sign_in_user(:email)"),
+                    {"email": email},
+                )
             )
-        ).mappings().one_or_none()
+            .mappings()
+            .one_or_none()
+        )
         if row is None:
             return None
         return GlobalSignInUser(
@@ -98,11 +102,15 @@ class SQLAlchemyIdentityRepository:
         self, session: AsyncSession, user_id: uuid.UUID
     ) -> list[UserWorkspace]:
         rows = (
-            await session.execute(
-                text("SELECT * FROM list_active_user_workspaces(:user_id)"),
-                {"user_id": user_id},
+            (
+                await session.execute(
+                    text("SELECT * FROM list_active_user_workspaces(:user_id)"),
+                    {"user_id": user_id},
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [
             UserWorkspace(
                 membership_id=row["membership_id"],

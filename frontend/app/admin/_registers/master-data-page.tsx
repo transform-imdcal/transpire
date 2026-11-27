@@ -16,7 +16,7 @@ import { useTenantRouter as useRouter } from "@/lib/use-tenant-router";
 import shared from "../admin.module.css";
 import styles from "@/components/admin/admin-register.module.css";
 
-export type Kind = "site" | "department" | "category" | "subcategory" | "process_area";
+export type Kind = "site" | "department" | "category" | "subcategory" | "capex_subtype";
 export type Item = { id: string; kind: Kind; code: string; name: string; parent_id: string | null; site_ids: string[]; applies_to_all_sites: boolean; is_active: boolean; sort_order: number };
 type Registers = Record<Kind, Item[]>;
 
@@ -25,18 +25,20 @@ const labels: Record<Kind, { singular: string; plural: string }> = {
   department: { singular: "Department", plural: "Departments" },
   category: { singular: "Category", plural: "Categories" },
   subcategory: { singular: "Subcategory", plural: "Subcategories" },
-  process_area: { singular: "Process area", plural: "Process areas" },
+  capex_subtype: { singular: "CAPEX sub-category", plural: "CAPEX sub-categories" },
 };
 
 type PageConfig = { route: AdminRoute; description: string; empty: string; related: Kind[] };
-const pages: Record<"site" | "department" | "category" | "process_area", PageConfig> = {
+const pages: Record<"site" | "department" | "category" | "capex_subtype", PageConfig> = {
   site: { route: "sites", description: "Locations people choose when they submit an idea.", empty: "Add your first site so departments and ideas can be placed.", related: ["department"] },
   department: { route: "departments", description: "Teams within your sites. Each department can be available at every site or only some.", empty: "Add sites first, then the departments that work at them.", related: ["site"] },
   category: { route: "categories", description: "How ideas are classified. Each category holds its own subcategories.", empty: "Add the first category to start classifying ideas.", related: ["subcategory"] },
-  process_area: { route: "process_areas", description: "The parts of your operation an idea improves.", empty: "Add the first process area people can choose.", related: [] },
+  capex_subtype: { route: "capex_subtypes", description: "The sub-categories people choose for a Capex Project. Deactivate one to stop new ideas using it; existing ideas keep theirs.", empty: "Add the first CAPEX sub-category people can choose.", related: [] },
 };
 
-const empty = (): Registers => ({ site: [], department: [], category: [], subcategory: [], process_area: [] });
+const empty = (): Registers => ({ site: [], department: [], category: [], subcategory: [], capex_subtype: [] });
+/** Lowercase for running text, keeping acronyms such as CAPEX. */
+const lc = (text: string) => text.replace(/^[A-Z](?=[a-z])/, (letter) => letter.toLowerCase());
 const slugify = (value: string) => value.toLocaleLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 const errorDetail = async (response: Response, fallback: string) => ((await response.json().catch(() => null)) as { detail?: string } | null)?.detail ?? fallback;
 
@@ -68,7 +70,7 @@ export function MasterDataPage({ kind }: { kind: keyof typeof pages }) {
       const next = empty();
       await Promise.all(kinds.map(async (entry, index) => { if (responses[index].ok) next[entry] = await responses[index].json() as Item[]; }));
       setRegisters(next);
-      if (responses.some((response) => !response.ok)) setError(`Some ${labels[kind].plural.toLowerCase()} could not be loaded. Retry in a moment.`);
+      if (responses.some((response) => !response.ok)) setError(`Some ${lc(labels[kind].plural)} could not be loaded. Retry in a moment.`);
     } catch { setError("TRANSPIRE could not reach the configuration service. Check the connection, then retry."); }
     finally { setLoaded(true); }
   }, [config.related, kind, router]);
@@ -128,7 +130,7 @@ export function MasterDataPage({ kind }: { kind: keyof typeof pages }) {
 
   const singular = labels[kind].singular;
   return <AdminShell session={session} active={config.route} title={labels[kind].plural} description={config.description}
-    actions={<button type="button" className={shared.primary} onClick={() => setEditor({ mode: "create" })} disabled={kind === "department" && !sites.some((site) => site.is_active)}><Plus size={16} aria-hidden="true" />Add {singular.toLowerCase()}</button>}>
+    actions={<button type="button" className={shared.primary} onClick={() => setEditor({ mode: "create" })} disabled={kind === "department" && !sites.some((site) => site.is_active)}><Plus size={16} aria-hidden="true" />Add {lc(singular)}</button>}>
     {message || error ? <div className={styles.notices}>
       {message ? <DismissibleNotice onDismiss={() => setMessage("")}>{message}</DismissibleNotice> : null}
       {error ? <DismissibleNotice tone="error" onDismiss={() => setError("")}>{error}</DismissibleNotice> : null}
@@ -136,13 +138,13 @@ export function MasterDataPage({ kind }: { kind: keyof typeof pages }) {
 
     <section className={styles.surface} aria-label={`${labels[kind].plural} register`}>
       <div className={styles.toolbar}>
-        <SearchField id={`${kind}-search`} label={`Search ${labels[kind].plural.toLowerCase()}`} value={query} onChange={setQuery} placeholder="Search name or code" resultCount={visible.length} />
+        <SearchField id={`${kind}-search`} label={`Search ${lc(labels[kind].plural)}`} value={query} onChange={setQuery} placeholder="Search name or code" resultCount={visible.length} />
         <div className={styles.toolbarFilters}>
           {kind === "department" ? <SelectField id="department-site-filter" name="site_filter" label="Site" value={siteFilter} onChange={setSiteFilter} options={[{ value: "", label: "All sites" }, ...sites.map((site) => ({ value: site.id, label: site.name }))]} /> : null}
           <StatusFilter value={status} onChange={setStatus} counts={counts} />
         </div>
       </div>
-      {!loaded ? <p className={styles.empty}>Loading {labels[kind].plural.toLowerCase()}</p>
+      {!loaded ? <p className={styles.empty}>Loading {lc(labels[kind].plural)}</p>
         : !items.length ? <div className={styles.empty}><p>{config.empty}</p></div>
         : <div className={styles.tableWrap}><table className={styles.table}>
           <thead><tr>
@@ -168,13 +170,13 @@ export function MasterDataPage({ kind }: { kind: keyof typeof pages }) {
             </div></td>
           </tr>)}</tbody>
         </table>
-        {!visible.length ? <p className={styles.empty}>No {labels[kind].plural.toLowerCase()} match these filters.</p> : null}
+        {!visible.length ? <p className={styles.empty}>No {lc(labels[kind].plural)} match these filters.</p> : null}
         </div>}
       {loaded && items.length ? <p className={styles.footerNote}>Deactivated records stay on existing ideas but can no longer be chosen.</p> : null}
     </section>
 
     <SidePanel open={editor?.mode === "create" || editor?.mode === "edit"} onClose={() => setEditor(null)}
-      title={editor?.mode === "edit" ? `Edit ${editor.item.name}` : `Add ${singular.toLowerCase()}`}
+      title={editor?.mode === "edit" ? `Edit ${editor.item.name}` : `Add ${lc(singular)}`}
       description={editor?.mode === "edit" ? "The code stays fixed so existing ideas and reports keep matching." : "Codes are permanent identifiers used in reports and exports."}>
       {editor?.mode === "create" || editor?.mode === "edit"
         ? <RecordForm key={editor.mode === "edit" ? editor.item.id : "new"} kind={kind} item={editor.mode === "edit" ? editor.item : undefined} sites={sites.filter((site) => site.is_active)} busy={busy === "save"} onCancel={() => setEditor(null)} onSubmit={(event, item) => void save(event, kind, item)} />
@@ -214,7 +216,7 @@ function RecordForm({ kind, item, sites, busy, onSubmit, onCancel }: { kind: Kin
     </fieldset> : null}
     <div className={styles.panelFooter}>
       {onCancel ? <button type="button" className={styles.secondary} onClick={onCancel}>Cancel</button> : null}
-      <button type="submit" className={shared.primary} disabled={busy || invalidScope}>{busy ? "Saving" : item ? "Save changes" : `Add ${singular.toLowerCase()}`}</button>
+      <button type="submit" className={shared.primary} disabled={busy || invalidScope}>{busy ? "Saving" : item ? "Save changes" : `Add ${lc(singular)}`}</button>
     </div>
   </form>;
 }

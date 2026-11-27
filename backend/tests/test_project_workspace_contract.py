@@ -37,10 +37,12 @@ def test_migrated_baseline_snapshot_receives_safe_collection_defaults() -> None:
 def test_milestone_plan_rejects_excess_weight_and_unknown_dependencies() -> None:
     with pytest.raises(ValidationError, match="cannot total more than 100"):
         ProjectMilestonePlanCommand.model_validate(
-            {"milestones": [
-                {"position": 1, "title": "First", "weight": 60, "progress": 0},
-                {"position": 2, "title": "Second", "weight": 60, "progress": 0},
-            ]}
+            {
+                "milestones": [
+                    {"position": 1, "title": "First", "weight": 60, "progress": 0},
+                    {"position": 2, "title": "Second", "weight": 60, "progress": 0},
+                ]
+            }
         )
 
     with pytest.raises(ValidationError, match="dependencies must reference"):

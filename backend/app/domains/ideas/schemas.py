@@ -201,6 +201,7 @@ class IdeaSubmissionCatalog(BaseModel):
     categories: list[CatalogItem]
     subcategories: list[CatalogItem]
     process_areas: list[CatalogItem]
+    capex_subtypes: list[CatalogItem] = []
     approval_contract: ApprovalContractPreview | None = None
 
 
@@ -430,3 +431,5 @@ class HomeWorkspaceSummary(BaseModel):
     ideas: list[HomeIdeaSummary]
     approval_items: list[ApprovalWorkItem]
     join_requests: list[JoinRequestRecord] = Field(default_factory=list)
+    # Endorsements colleagues have asked this person for (see ideas/endorsements.py).
+    endorsement_requests: list[dict[str, object]] = Field(default_factory=list)
